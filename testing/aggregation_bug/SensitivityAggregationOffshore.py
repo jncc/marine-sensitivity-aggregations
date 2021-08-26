@@ -28,6 +28,399 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 #############################################################
 
+# Adding a EUNIS level column to the DF based on the 'EUNIS_Code' column
+# Function Title: eunis_lvl
+def eunis_lvl(row):
+    """User defined function to pull out all data from the column 'EUNIS_Code' and return an integer dependant on
+    the EUNIS level in response"""
+
+    # Create object oriented variable to store EUNIS_Code data
+    ecode = str(row['EUNIS_Code'])
+    # Create if / elif conditions to produce response dependent on the string length of the inputted data
+    if len(ecode) == 1:
+        return '1'
+    elif len(ecode) == 2:
+        return '2'
+    elif len(ecode) == 4:
+        return '3'
+    elif len(ecode) == 5:
+        return '4'
+    elif len(ecode) == 6:
+        return '5'
+    elif len(ecode) == 7:
+        return '6'
+
+# Create function to complete cross join / create cartesian product between two target DF
+def df_crossjoin(df1, df2):
+    """
+    Make a cross join (cartesian product) between two dataframes by using a constant temporary key.
+    Also sets a MultiIndex which is the cartesian product of the indices of the input dataframes.
+    :param df1 dataframe 1
+    :param df1 dataframe 2
+
+    :return cross join of df1 and df2
+    """
+    df1.loc[:, '_tmpkey'] = 1
+    df2.loc[:, '_tmpkey'] = 1
+
+    res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
+    res.index = pd.MultiIndex.from_product((df1.index, df2.index))
+
+    df1.drop('_tmpkey', axis=1, inplace=True)
+    df2.drop('_tmpkey', axis=1, inplace=True)
+
+    return res
+
+# Defining functions (aggregation process data formatting)
+
+# Define all functions which are required within the script to format data for aggregation process
+
+# Function Title: df_clean
+def df_clean(df):
+    """User defined function to refine dataset - remove whitespace
+     and Inshore / No Biotope Presence data"""
+    # Toggle this on / off to get offshore or all data together
+    df.drop(df[df.BiotopePresence == 'Inshore only'].index, inplace=True)
+    # Refine dataset to only include data for which BiotopePresence == 'Poss' or 'Yes'
+    df.drop(df[df.BiotopePresence == 'No'].index, inplace=True)
+    df['EUNIS_Code'].str.strip()
+    df['Sensitivity'].replace(["Not relevant (NR)"], "Not relevant", inplace=True)
+    df['Sensitivity'].replace(["No evidence (NEv)"], "No evidence", inplace=True)
+    df['Sensitivity'].replace(["Not assessed (NA)"], "Not assessed", inplace=True)
+    df['Resistance'].replace(["Not Assessed (NA)"], "Not assessed", inplace=True)
+
+    return df
+
+# Function Title: unwanted_char
+def unwanted_char(df, column):
+    """User defined function to refine dataset - remove unwanted special characters and acronyms from sensitivity
+    scores. User must pass the DataFrame and the column (as a string) as the arguments to the parentheses of the
+    function"""
+    for eachField in df[column]:
+        eachField.replace(r"\\s*zz(][^\\]+\\)", "")
+    return df
+
+# Function Title: eunis_col
+def eunis_col(row):
+    """User defined function to pull out all entries in EUNIS_Code column and create returns based on string
+    slices of the EUNIS data. This must be used with df.apply() and a lambda function.
+
+    e.g. bioreg_maresa_merge[['Level_1', 'Level_2', 'Level_3',
+          'Level_4', 'Level_5', 'Level_6']] = bioreg_maresa_merge.apply(lambda row: pd.Series(eunis_col(row)), axis=1)"""
+
+    # Create object oriented variable to store EUNIS_Code data
+    ecode = str(row['EUNIS_Code'])
+    # Create if / elif conditions to produce response dependent on the string length of the inputted data.
+    if len(ecode) == 1:
+        return ecode[0:1], None, None, None, None, None
+    elif len(ecode) == 2:
+        return ecode[0:1], ecode[0:2], None, None, None, None
+    elif len(ecode) == 4:
+        return ecode[0:1], ecode[0:2], ecode[0:4], None, None, None
+    elif len(ecode) == 5:
+        return ecode[0:1], ecode[0:2], ecode[0:4], ecode[0:5], None, None
+    elif len(ecode) == 6:
+        return ecode[0:1], ecode[0:2], ecode[0:4], ecode[0:5], ecode[0:6], None
+    elif len(ecode) == 7:
+        return ecode[0:1], ecode[0:2], ecode[0:4], ecode[0:5], ecode[0:6], ecode[0:7]
+
+####################################################################################################################
+
+# Defining functions (aggregation process)
+
+# Define all functions which are required within the script to execute aggregation process
+# Function Title: counter
+def counter(value):
+    """Count the total no. of occurrences of each sensitivity (high, medium, low, not sensitive, not relevant,
+      no evidence, not assessed, unknown
+      Return values to be assigned to new columns through lambda function"""
+    counthigh = value.count('High')
+    countmedium = value.count('Medium')
+    countlow = value.count('Low')
+    countns = value.count('Not sensitive')
+    countnr = value.count('Not relevant')
+    countne = value.count('No evidence')
+    countna = value.count('Not assessed')
+    countuk = value.count('Unknown')
+    return counthigh, countmedium, countlow, countns, countnr, countne, countna, countuk
+
+# Function Title: replacer
+def replacer(value, repstring):
+    """Perform string replace on each sensitivity count column (one set of duplicates only)"""
+    if value == 0:
+        return 'NA'
+    elif value != 0:
+        return repstring
+
+# Function Title: create_sensitivity
+def create_sensitivity(df):
+    """Series of conditional statements which return a string value of all assessment values
+    contained within individual columns"""
+    # Create object oriented variable for each column of data from DataFrame (assessed only)
+    high = df['High']
+    med = df['Medium']
+    low = df['Low']
+    nsens = df['Not sensitive']
+    # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
+    nrel = df['Not relevant']
+    nev = df['No evidence']
+    n_ass = df['Not assessed']
+    un = df['Unknown']
+
+    # Create empty list for all string values to be appended into - this will be assigned to each field when data
+    # are iterated through using the lambdas function which follows immediately after this function
+    value = []
+    # Create series of conditional statements to append string values into the empty list ('value') if conditional
+    # statements are fulfilled
+    if 'High' in high:
+        h = 'High'
+        value.append(h)
+    if 'Medium' in med:
+        m = 'Medium'
+        value.append(m)
+    if 'Low' in low:
+        lo = 'Low'
+        value.append(lo)
+    if 'Not sensitive' in nsens:
+        ns = 'Not sensitive'
+        value.append(ns)
+    if 'Not relevant' in nrel:
+        nr = 'Not relevant'
+        value.append(nr)
+    if 'No evidence' in nev:
+        ne = 'No evidence'
+        value.append(ne)
+    if 'Not assessed' in n_ass:
+        nass = 'Not assessed'
+        value.append(nass)
+    if 'Unknown' in un:
+        unk = 'Unknown'
+        value.append(unk)
+    s = ', '.join(value)
+    return str(s)
+
+# Function Title: final_sensitivity
+def final_sensitivity(df):
+    """Create a return of a string value which gives final sensitivity score dependent on conditional statements"""
+    # Create object oriented variable for each column of data from DataFrame (assessed only)
+    high = df['High']
+    med = df['Medium']
+    low = df['Low']
+    nsens = df['Not sensitive']
+    # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
+    nrel = df['Not relevant']
+    nev = df['No evidence']
+    n_ass = df['Not assessed']
+    un = df['Unknown']
+
+    # Create empty list for all string values to be appended into - this will be assigned to each field when data
+    # are iterated through using the lambdas function which follows immediately after this function
+    value = []
+    # Create series of conditional statements to append string values into the empty list ('value') if conditional
+    # statements are fulfilled
+    if 'High' in high:
+        h = 'High'
+        value.append(h)
+    if 'Medium' in med:
+        m = 'Medium'
+        value.append(m)
+    if 'Low' in low:
+        lo = 'Low'
+        value.append(lo)
+    if 'Not sensitive' in nsens:
+        ns = 'Not sensitive'
+        value.append(ns)
+    if 'High' not in high and 'Medium' not in med and 'Low' not in low and 'Not sensitive' not in nsens:
+        if 'Not relevant' in nrel:
+            nr = 'Not relevant'
+            value.append(nr)
+        if 'No evidence' in nev:
+            ne = 'No evidence'
+            value.append(ne)
+        if 'Not assessed' in n_ass:
+            nass = 'Not assessed'
+            value.append(nass)
+    if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel and 'NA' in nev and \
+            'NA' in n_ass:
+        if 'Unknown' in un:
+            unk = 'Unknown'
+            value.append(unk)
+
+    s = ', '.join(value)
+    return str(s)
+
+# Function Title: combine_assessedcounts
+def combine_assessedcounts(df):
+    """Conditional statements which combine assessed count data and return as string value"""
+    # Create object oriented variable for each column of data from DataFrame (assessed only)
+    high = df['High']
+    med = df['Medium']
+    low = df['Low']
+    nsens = df['Not sensitive']
+    # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
+    nrel = df['Not relevant']
+    nev = df['No evidence']
+    n_ass = df['Not assessed']
+    un = df['Unknown']
+
+    # Create empty list for all string values to be appended into - this will be assigned to each field when data
+    # are iterated through using the lambdas function which follows immediately after this function
+    value = []
+    # Create series of conditional statements to append string values into the empty list ('value') if conditional
+    # statements are fulfilled
+    if 'High' in high:
+        h = 'H(' + str(df['Count_High']) + ')'
+        value.append(h)
+    if 'Medium' in med:
+        m = 'M(' + str((df['Count_Medium'])) + ')'
+        value.append(m)
+    if 'Low' in low:
+        lo = 'L(' + str(df['Count_Low']) + ')'
+        value.append(lo)
+    if 'Not sensitive' in nsens:
+        ns = 'NS(' + str(df['Count_NotSensitive']) + ')'
+        value.append(ns)
+    if 'Not relevant' in nrel:
+        nr = 'NR(' + str(df['Count_NotRel']) + ')'
+        value.append(nr)
+    if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel:
+        if 'No evidence' in nev:
+            ne = 'Not Applicable'
+            value.append(ne)
+        if 'Not assessed' in n_ass:
+            nass = 'Not Applicable'
+            value.append(nass)
+        if 'Unknown' in un:
+            unk = 'Not Applicable'
+            value.append(unk)
+    s = ', '.join(set(value))
+    return str(s)
+
+# Function Title: combine_unassessedcounts
+def combine_unassessedcounts(df):
+    """Conditional statements which combine unassessed count data and return as string value"""
+    # Create object oriented variable for each column of data from DataFrame (assessed only)
+    # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
+    nrel = df['Not relevant']
+    nev = df['No evidence']
+    n_ass = df['Not assessed']
+    un = df['Unknown']
+
+    # Create empty list for all string values to be appended into - this will be assigned to each field when data
+    # are iterated through using the lambdas function which follows immediately after this function
+
+    values = []
+
+    # Create series of conditional statements to append string values into the empty list ('value') if conditional
+    # statements are fulfilled
+    if 'No evidence' in nev:
+        ne = 'NE(' + str(df['Count_NoEvidence']) + ')'
+        values.append(ne)
+    if 'Not assessed' in n_ass:
+        na = 'NA(' + str(df['Count_NotAssessed']) + ')'
+        values.append(na)
+    if 'Unknown' in un:
+        unk = 'UN(' + str(df['Count_Unknown']) + ')'
+        values.append(unk)
+    # if 'NA' in nrel and 'NA' in nev and 'NA' in n_ass and 'NA' in un:
+    if 'NA' in nev and 'NA' in n_ass and 'NA' in un:
+        napp = 'Not Applicable'
+        values.append(napp)
+    s = ', '.join(set(values))
+    return str(s)
+
+# Function Title: create_confidence
+def create_confidence(df):
+    """Divide the total assessed counts by the total count of all data and return as numerical value"""
+    # Pull in assessed values counts
+    count_high = df['Count_High']
+    count_med = df['Count_Medium']
+    count_low = df['Count_Low']
+    count_ns = df['Count_NotSensitive']
+
+    # Pull in unassessed values counts
+    count_nr = df['Count_NotRel']
+    count_ne = df['Count_NoEvidence']
+    count_na = df['Count_NotAssessed']
+    count_unk = df['Count_Unknown']
+
+    # Create ratio calculation
+    total_ass = count_high + count_med + count_low + count_ns
+    total = total_ass + count_ne + count_na + count_unk
+
+    return round(total_ass / total, 3) if total else 0
+
+# Function Title: categorise_confidence
+def categorise_confidence(df, column):
+    """Partition and categorise confidence values by quantile intervals"""
+    if column == 'L2_AggregationConfidenceValue':
+        value = df[column]
+        if value < 0.33:
+            return 'Low'
+        elif value >= 0.33 and value < 0.66:
+            return ' Medium'
+        elif value >= 0.66:
+            return 'High'
+    elif column == 'L3_AggregationConfidenceValue':
+        value = df[column]
+        if value < 0.33:
+            return 'Low'
+        elif value >= 0.33 and value < 0.66:
+            return ' Medium'
+        elif value >= 0.66:
+            return 'High'
+    elif column == 'L4_AggregationConfidenceValue':
+        value = df[column]
+        if value < 0.33:
+            return 'Low'
+        elif value >= 0.33 and value < 0.66:
+            return ' Medium'
+        elif value >= 0.66:
+            return 'High'
+    elif column == 'L5_AggregationConfidenceValue':
+        value = df[column]
+        if value < 0.33:
+            return 'Low'
+        elif value >= 0.33 and value < 0.66:
+            return ' Medium'
+        elif value >= 0.66:
+            return 'High'
+    elif column == 'L6_AggregationConfidenceValue':
+        value = df[column]
+        if value < 0.33:
+            return 'Low'
+        elif value >= 0.33 and value < 0.66:
+            return ' Medium'
+        elif value >= 0.66:
+            return 'High'
+
+# Function Title: column5
+def column5(df, column):
+    """Sample Level_5 column and return string variables sliced within the range [0:6]"""
+    value = df[column]
+    sample = value[0:6]
+    return sample
+
+# Function Title: column4
+def column4(df, column):
+    """Sample Level_5 column and return string variables sliced within the range [0:5]"""
+    value = df[column]
+    sample = value[0:5]
+    return sample
+
+# Function Title: column3
+def column3(df, column):
+    """User defined function to sample Level_4 column and return string variables sliced within the range [0:4]"""
+    value = df[column]
+    sample = value[0:4]
+    return sample
+
+# Function Title: column2
+def column2(df, column):
+    """User defined function to sample Level_4 column and return string variables sliced within the range [0:4]"""
+    value = df[column]
+    sample = value[0:2]
+    return sample
 
 # Define the code as a function to be executed as necessary
 def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
@@ -79,28 +472,6 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     #############################################################
 
     # Formatting the MarESA DF
-
-    # Adding a EUNIS level column to the DF based on the 'EUNIS_Code' column
-    # Function Title: eunis_lvl
-    def eunis_lvl(row):
-        """User defined function to pull out all data from the column 'EUNIS_Code' and return an integer dependant on
-        the EUNIS level in response"""
-
-        # Create object oriented variable to store EUNIS_Code data
-        ecode = str(row['EUNIS_Code'])
-        # Create if / elif conditions to produce response dependent on the string length of the inputted data
-        if len(ecode) == 1:
-            return '1'
-        elif len(ecode) == 2:
-            return '2'
-        elif len(ecode) == 4:
-            return '3'
-        elif len(ecode) == 5:
-            return '4'
-        elif len(ecode) == 6:
-            return '5'
-        elif len(ecode) == 7:
-            return '6'
 
     # Adding a EUNIS level column to the DF based on the 'EUNIS_Code' column - using the function
     MarESA['EUNIS level'] = MarESA.apply(lambda row: eunis_lvl(row), axis=1)
@@ -182,28 +553,6 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     correlation_snippet = correlation_snippet[correlation_snippet.EUNIS_Code != 'Saltmarsh 5 EUNIS types Sm:']
     correlation_snippet = correlation_snippet[correlation_snippet.EUNIS_Code !=
                                               '104 EUNIS level 5 and 6 types 26 NVC types:']
-
-    # Create function to complete cross join / create cartesian product between two target DF
-
-    def df_crossjoin(df1, df2):
-        """
-        Make a cross join (cartesian product) between two dataframes by using a constant temporary key.
-        Also sets a MultiIndex which is the cartesian product of the indices of the input dataframes.
-        :param df1 dataframe 1
-        :param df1 dataframe 2
-
-        :return cross join of df1 and df2
-        """
-        df1.loc[:, '_tmpkey'] = 1
-        df2.loc[:, '_tmpkey'] = 1
-
-        res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
-        res.index = pd.MultiIndex.from_product((df1.index, df2.index))
-
-        df1.drop('_tmpkey', axis=1, inplace=True)
-        df2.drop('_tmpkey', axis=1, inplace=True)
-
-        return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
     correlation_snippet_template = df_crossjoin(correlation_snippet, Template_DF)
@@ -314,359 +663,6 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     maresa = maresa[maresa.EUNIS_Code != 'A6.9111']
     bioregions = bioregions[bioregions.HabitatCode != 'A6.95']
     bioregions = bioregions[bioregions.HabitatCode != 'A6.9111']
-
-    ####################################################################################################################
-
-    # Defining functions (aggregation process data formatting)
-
-    # Define all functions which are required within the script to format data for aggregation process
-
-    # Function Title: df_clean
-    def df_clean(df):
-        """User defined function to refine dataset - remove whitespace
-         and Inshore / No Biotope Presence data"""
-        # Toggle this on / off to get offshore or all data together
-        df.drop(df[df.BiotopePresence == 'Inshore only'].index, inplace=True)
-        # Refine dataset to only include data for which BiotopePresence == 'Poss' or 'Yes'
-        df.drop(df[df.BiotopePresence == 'No'].index, inplace=True)
-        df['EUNIS_Code'].str.strip()
-        df['Sensitivity'].replace(["Not relevant (NR)"], "Not relevant", inplace=True)
-        df['Sensitivity'].replace(["No evidence (NEv)"], "No evidence", inplace=True)
-        df['Sensitivity'].replace(["Not assessed (NA)"], "Not assessed", inplace=True)
-        df['Resistance'].replace(["Not Assessed (NA)"], "Not assessed", inplace=True)
-
-        return df
-
-    # Function Title: unwanted_char
-    def unwanted_char(df, column):
-        """User defined function to refine dataset - remove unwanted special characters and acronyms from sensitivity
-        scores. User must pass the DataFrame and the column (as a string) as the arguments to the parentheses of the
-        function"""
-        for eachField in df[column]:
-            eachField.replace(r"\\s*zz(][^\\]+\\)", "")
-        return df
-
-    # Function Title: eunis_col
-    def eunis_col(row):
-        """User defined function to pull out all entries in EUNIS_Code column and create returns based on string
-        slices of the EUNIS data. This must be used with df.apply() and a lambda function.
-
-        e.g. bioreg_maresa_merge[['Level_1', 'Level_2', 'Level_3',
-              'Level_4', 'Level_5', 'Level_6']] = bioreg_maresa_merge.apply(lambda row: pd.Series(eunis_col(row)), axis=1)"""
-
-        # Create object oriented variable to store EUNIS_Code data
-        ecode = str(row['EUNIS_Code'])
-        # Create if / elif conditions to produce response dependent on the string length of the inputted data.
-        if len(ecode) == 1:
-            return ecode[0:1], None, None, None, None, None
-        elif len(ecode) == 2:
-            return ecode[0:1], ecode[0:2], None, None, None, None
-        elif len(ecode) == 4:
-            return ecode[0:1], ecode[0:2], ecode[0:4], None, None, None
-        elif len(ecode) == 5:
-            return ecode[0:1], ecode[0:2], ecode[0:4], ecode[0:5], None, None
-        elif len(ecode) == 6:
-            return ecode[0:1], ecode[0:2], ecode[0:4], ecode[0:5], ecode[0:6], None
-        elif len(ecode) == 7:
-            return ecode[0:1], ecode[0:2], ecode[0:4], ecode[0:5], ecode[0:6], ecode[0:7]
-
-    ####################################################################################################################
-
-    # Defining functions (aggregation process)
-
-    # Define all functions which are required within the script to execute aggregation process
-    # Function Title: counter
-    def counter(value):
-        """Count the total no. of occurrences of each sensitivity (high, medium, low, not sensitive, not relevant,
-          no evidence, not assessed, unknown
-          Return values to be assigned to new columns through lambda function"""
-        counthigh = value.count('High')
-        countmedium = value.count('Medium')
-        countlow = value.count('Low')
-        countns = value.count('Not sensitive')
-        countnr = value.count('Not relevant')
-        countne = value.count('No evidence')
-        countna = value.count('Not assessed')
-        countuk = value.count('Unknown')
-        return counthigh, countmedium, countlow, countns, countnr, countne, countna, countuk
-
-    # Function Title: replacer
-    def replacer(value, repstring):
-        """Perform string replace on each sensitivity count column (one set of duplicates only)"""
-        if value == 0:
-            return 'NA'
-        elif value != 0:
-            return repstring
-
-    # Function Title: create_sensitivity
-    def create_sensitivity(df):
-        """Series of conditional statements which return a string value of all assessment values
-        contained within individual columns"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        high = df['High']
-        med = df['Medium']
-        low = df['Low']
-        nsens = df['Not sensitive']
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-        value = []
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'High' in high:
-            h = 'High'
-            value.append(h)
-        if 'Medium' in med:
-            m = 'Medium'
-            value.append(m)
-        if 'Low' in low:
-            lo = 'Low'
-            value.append(lo)
-        if 'Not sensitive' in nsens:
-            ns = 'Not sensitive'
-            value.append(ns)
-        if 'Not relevant' in nrel:
-            nr = 'Not relevant'
-            value.append(nr)
-        if 'No evidence' in nev:
-            ne = 'No evidence'
-            value.append(ne)
-        if 'Not assessed' in n_ass:
-            nass = 'Not assessed'
-            value.append(nass)
-        if 'Unknown' in un:
-            unk = 'Unknown'
-            value.append(unk)
-        s = ', '.join(value)
-        return str(s)
-
-    # Function Title: final_sensitivity
-    def final_sensitivity(df):
-        """Create a return of a string value which gives final sensitivity score dependent on conditional statements"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        high = df['High']
-        med = df['Medium']
-        low = df['Low']
-        nsens = df['Not sensitive']
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-        value = []
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'High' in high:
-            h = 'High'
-            value.append(h)
-        if 'Medium' in med:
-            m = 'Medium'
-            value.append(m)
-        if 'Low' in low:
-            lo = 'Low'
-            value.append(lo)
-        if 'Not sensitive' in nsens:
-            ns = 'Not sensitive'
-            value.append(ns)
-        if 'High' not in high and 'Medium' not in med and 'Low' not in low and 'Not sensitive' not in nsens:
-            if 'Not relevant' in nrel:
-                nr = 'Not relevant'
-                value.append(nr)
-            if 'No evidence' in nev:
-                ne = 'No evidence'
-                value.append(ne)
-            if 'Not assessed' in n_ass:
-                nass = 'Not assessed'
-                value.append(nass)
-        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel and 'NA' in nev and \
-                'NA' in n_ass:
-            if 'Unknown' in un:
-                unk = 'Unknown'
-                value.append(unk)
-
-        s = ', '.join(value)
-        return str(s)
-
-    # Function Title: combine_assessedcounts
-    def combine_assessedcounts(df):
-        """Conditional statements which combine assessed count data and return as string value"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        high = df['High']
-        med = df['Medium']
-        low = df['Low']
-        nsens = df['Not sensitive']
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-        value = []
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'High' in high:
-            h = 'H(' + str(df['Count_High']) + ')'
-            value.append(h)
-        if 'Medium' in med:
-            m = 'M(' + str((df['Count_Medium'])) + ')'
-            value.append(m)
-        if 'Low' in low:
-            lo = 'L(' + str(df['Count_Low']) + ')'
-            value.append(lo)
-        if 'Not sensitive' in nsens:
-            ns = 'NS(' + str(df['Count_NotSensitive']) + ')'
-            value.append(ns)
-        if 'Not relevant' in nrel:
-            nr = 'NR(' + str(df['Count_NotRel']) + ')'
-            value.append(nr)
-        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel:
-            if 'No evidence' in nev:
-                ne = 'Not Applicable'
-                value.append(ne)
-            if 'Not assessed' in n_ass:
-                nass = 'Not Applicable'
-                value.append(nass)
-            if 'Unknown' in un:
-                unk = 'Not Applicable'
-                value.append(unk)
-        s = ', '.join(set(value))
-        return str(s)
-
-    # Function Title: combine_unassessedcounts
-    def combine_unassessedcounts(df):
-        """Conditional statements which combine unassessed count data and return as string value"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-
-        values = []
-
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'No evidence' in nev:
-            ne = 'NE(' + str(df['Count_NoEvidence']) + ')'
-            values.append(ne)
-        if 'Not assessed' in n_ass:
-            na = 'NA(' + str(df['Count_NotAssessed']) + ')'
-            values.append(na)
-        if 'Unknown' in un:
-            unk = 'UN(' + str(df['Count_Unknown']) + ')'
-            values.append(unk)
-        # if 'NA' in nrel and 'NA' in nev and 'NA' in n_ass and 'NA' in un:
-        if 'NA' in nev and 'NA' in n_ass and 'NA' in un:
-            napp = 'Not Applicable'
-            values.append(napp)
-        s = ', '.join(set(values))
-        return str(s)
-
-    # Function Title: create_confidence
-    def create_confidence(df):
-        """Divide the total assessed counts by the total count of all data and return as numerical value"""
-        # Pull in assessed values counts
-        count_high = df['Count_High']
-        count_med = df['Count_Medium']
-        count_low = df['Count_Low']
-        count_ns = df['Count_NotSensitive']
-
-        # Pull in unassessed values counts
-        count_nr = df['Count_NotRel']
-        count_ne = df['Count_NoEvidence']
-        count_na = df['Count_NotAssessed']
-        count_unk = df['Count_Unknown']
-
-        # Create ratio calculation
-        total_ass = count_high + count_med + count_low + count_ns
-        total = total_ass + count_ne + count_na + count_unk
-
-        return round(total_ass / total, 3) if total else 0
-
-    # Function Title: categorise_confidence
-    def categorise_confidence(df, column):
-        """Partition and categorise confidence values by quantile intervals"""
-        if column == 'L2_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L3_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L4_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L5_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L6_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-
-    # Function Title: column5
-    def column5(df, column):
-        """Sample Level_5 column and return string variables sliced within the range [0:6]"""
-        value = df[column]
-        sample = value[0:6]
-        return sample
-
-    # Function Title: column4
-    def column4(df, column):
-        """Sample Level_5 column and return string variables sliced within the range [0:5]"""
-        value = df[column]
-        sample = value[0:5]
-        return sample
-
-    # Function Title: column3
-    def column3(df, column):
-        """User defined function to sample Level_4 column and return string variables sliced within the range [0:4]"""
-        value = df[column]
-        sample = value[0:4]
-        return sample
-
-    # Function Title: column2
-    def column2(df, column):
-        """User defined function to sample Level_4 column and return string variables sliced within the range [0:4]"""
-        value = df[column]
-        sample = value[0:2]
-        return sample
 
     ####################################################################################################################
 
@@ -828,6 +824,8 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     # APPEND TOGETHER aggregated_L6_to_L5 + original_L5_without_L6_DF
     aggregated_L6_to_L5 = aggregated_L6_to_L5.append(original_L5_without_L6_DF)
 
+    aggregated_L6_to_L5 = aggregated_L6_to_L5.drop_duplicates(['Level_5', 'Pressure', 'SubregionName'])
+
     # Apply the counter() function to the DF to count the occurrence of all assessment values
     aggregated_L6_to_L5[[
         'High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
@@ -955,6 +953,8 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
     # Append the data back into the L4_agg DF
     L4_agg = L4_agg.append(L4_maresa_insert_without_aggregation)
+
+    L4_agg = L4_agg.drop_duplicates(['Level_4', 'Pressure', 'SubregionName'])
 
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L4_agg[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
