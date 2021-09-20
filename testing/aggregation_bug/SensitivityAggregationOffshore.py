@@ -824,6 +824,8 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     # APPEND TOGETHER aggregated_L6_to_L5 + original_L5_without_L6_DF
     aggregated_L6_to_L5 = aggregated_L6_to_L5.append(original_L5_without_L6_DF)
 
+    # Fixing issues when there are the same pressures/subregions in the new additional data
+    # to the existing data
     aggregated_L6_to_L5 = aggregated_L6_to_L5.drop_duplicates(['Level_5', 'Pressure', 'SubregionName'])
 
     # Apply the counter() function to the DF to count the occurrence of all assessment values
