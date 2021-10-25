@@ -5,7 +5,8 @@ library(dplyr)
 library(stringr)
 library(writexl)
 
-inpath<-"C:/Users/Jonny.Savage/Documents/"
+# input inpath
+inpath<-""
 
 
 ### create list of column names to keep ###
