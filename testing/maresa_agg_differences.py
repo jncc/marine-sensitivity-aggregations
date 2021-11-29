@@ -14,7 +14,7 @@ def excel_diff(df_old, df_new):
     sharedCols = list(set(cols_old).intersection(cols_new))
 
     print('\n\nLooking for changes....\n')
-    with open('./Outputs/maresa_agg_sens_comparison.txt', 'w') as f:
+    with open('./Output/maresa_agg_sens_comparison.txt', 'w') as f:
         f.write('####### Changes #######\n\n')
     for row in dfDiff.index:
         if (row in df_old.index) and (row in df_new.index):
@@ -36,7 +36,7 @@ def excel_diff(df_old, df_new):
                     else:
                         dfDiff.loc[row,col] = ('{}->{}').format(value_old,value_new)
                         print('Row - ', row, '\nChange - ', dfDiff.loc[row,col], '\n')
-                        with open('./Outputs/maresa_agg_sens_comparison.txt', 'a') as f:
+                        with open('./Output/maresa_agg_sens_comparison.txt', 'a') as f:
                             f.write('Row - ' + row + '\n')
                             f.write('Col - ' + col + '\n')
                             f.write('Change - ' + dfDiff.loc[row,col] + '\n\n')
@@ -53,7 +53,7 @@ def excel_diff(df_old, df_new):
     print('\n' + str(len(newRows)) + f' New Rows: {newRows}')
     print('\n' + str(len(droppedRows)) + f' Dropped Rows: {droppedRows}')
 
-    with open('./Outputs/maresa_agg_sens_comparison.txt', 'a') as f:
+    with open('./Output/maresa_agg_sens_comparison.txt', 'a') as f:
         f.write('\n####### New and deleted lines #######\n')
         f.write('\n' + str(len(newRows)) + ' New Rows:\n\n')
         for item in newRows:
@@ -67,7 +67,9 @@ def excel_diff(df_old, df_new):
 
 def main():
     path_OLD = Path('./Data/OffshoreSensAgg_20210113_Bioreg20201105_MarESA20201112.csv')
-    path_NEW = Path('./Data/OffshoreSensAgg_20210802_Bioreg20210802_marESA20210702.csv')
+    #path_NEW = Path('./Data/OffshoreSensAgg_20210802_Bioreg20210802_marESA20210702.csv')
+    path_NEW = Path('./Data/OffshoreSensAgg_20210826_Bioreg20210802_marESA20210702.csv')
+
 
     df_old = pd.read_csv(path_OLD).fillna('')
     df_new = pd.read_csv(path_NEW).fillna('')
