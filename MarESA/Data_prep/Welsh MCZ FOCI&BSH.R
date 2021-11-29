@@ -36,6 +36,11 @@ FOCI$`MCZ HOCI`<-str_replace(FOCI$`MCZ HOCI`, "seapens", "Sea-pen")
 FOCI<-FOCI %>%
   rename (FOCI = `MCZ HOCI`, `Classification level` = `EUNIS level`, `EUNIS code` = `EUNIS code 2007`, `EUNIS name` = `EUNIS name 2007`,
           `JNCC code` = `JNCC 15.03 code`, `JNCC name` = `JNCC 15.03 name`)
+FOCI<-FOCI %>%
+  mutate(FOCI = strsplit(as.character(FOCI), "/")) %>%
+  unnest(FOCI) %>%
+  mutate(`FOCI` = str_trim(string = `FOCI`, side = "both")) %>%
+  filter(str_detect(`FOCI`, pattern = list_FOCI))
 
 # select habitats NRW advised are not in Wales #
 NIW_FOCI<-read_excel(path = paste0(inpath, "Welsh_Inshore_MCZ_Aggregation_NRWResponse.xlsx"),
