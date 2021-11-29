@@ -77,7 +77,7 @@ print('\n\n')
 #                   Off-shore aggregation
 #
 ########################################################################
-'''
+
 ########################################################################
 # Title: JNCC MarESA Sensitivity Aggregation (EUNIS)
 
@@ -103,7 +103,7 @@ import ResilienceAggregationOffshore as RcAO
 offshore_resil_file = RcAO.main(
     marESA_file, marESA_tab, cor_table, bioregions_ext
     )
-
+'''
 ########################################################################
 #
 #                  Deep Sea Bed aggregation
@@ -217,7 +217,7 @@ POSAED.main(marESA_file, marESA_tab)
 # Execute the Aggregation Audit Log
 # Run alongside a QA script and a file send script
 import AggregationAuditLog as audit
-audit.main(audit = False, send = True)
+audit.main(audit = True, send = True)
 
 # Stop the timer post computation and print the elapsed time
 elapsed = (time.process_time() - start)
