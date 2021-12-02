@@ -57,7 +57,8 @@ Additional_EUNIS_pattern<-c('A4.27$|A4.33$')
 
 # filter FOCI by specified FOCI, remove EUNIS level 6, standardise sea-pen spelling #
 
-Additional_EUNIS<-UK_habitats[(str_detect(UK_habitats$`EUNIS code 2007`, pattern = Additional_EUNIS_pattern)),]
+Additional_EUNIS<-read_excel(path=paste0(inpath, "201801_EUNIS07and04_to_JNCC15.03andListed_CorrelationTable.xlsx")) %>%
+  filter(str_detect(`EUNIS code 2007`, pattern = Additional_EUNIS_pattern))
 
 FOCI<-UK_habitats %>%
   rbind(Additional_EUNIS) %>%
