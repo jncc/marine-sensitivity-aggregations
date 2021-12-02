@@ -1,5 +1,5 @@
 ### Script to create the English Inshore FOCI and BSH input dataset for the feature level MarESA aggregation
-# Uses the EUNIS correlations table, "Infra_circa_LUT", and the NRW responses to biotope present in Welsh waters
+# Uses the EUNIS correlations table and deepsea correlations, Bioregions extract, and Deepsea bioregions processed
 # R version 4.0.5
 # Package versions - tidyr_1.1.4   writexl_1.4.0 stringr_1.4.0 dplyr_1.0.7   readxl_1.3.1
 
@@ -147,7 +147,7 @@ DeepSea_habitats_BSH<-read_excel(path=paste0(inpath, "201801_EUNIS07and04_to_JNC
   mutate(`FOCI` = str_replace(`FOCI`, "Deep-sea sponge aggregations", "Deep-sea sponge aggregation")) %>%
   mutate(`FOCI` = str_replace(`FOCI`, "Seapens and burrowing megafauna", "Seapens and burrowing megafauna communities"))
 
-# Join two extracts from deep-sea correlations and join bioregions
+# Join two extracts from deep-sea correlations and join bioregions, and fix specific incorrect JNCC names
 Deepsea<-full_join(DeepSea_habitats_FOCI, DeepSea_habitats_BSH) %>%
   mutate(`JNCC name` = if_else(str_detect(`JNCC code`, "KopFie"), str_replace_all(`JNCC name`, "field", "fields"), `JNCC name`)) %>%
   mutate(`JNCC name` = if_else(str_detect(`JNCC code`, "DalSep"), str_replace_all(`JNCC name`, "Dallina septigera", "Dallina septigera and Macandrevia cranium"), `JNCC name`)) %>%
