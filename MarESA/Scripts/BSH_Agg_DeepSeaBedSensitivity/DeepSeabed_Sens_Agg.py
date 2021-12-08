@@ -151,12 +151,12 @@ def main(marESA_file, marESA_tab):
 
     # Restructure the crossjoined DF to only retain columns of interest
     bsh_unknown = bsh_unknown_template_cjoin[
-        ['BSH', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ['MCZ BSH', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
     # Refine the bsh_maresa dF to match the columns of the newly created bsh_unknown template
     bsh_maresa = bsh_maresa[
-        ['BSH', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ['MCZ BSH', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
     # Append the bsh_unknown into the refined bsh_maresa DF
