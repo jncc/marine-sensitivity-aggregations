@@ -439,7 +439,7 @@ def main(marESA_file, marESA_tab):
     # Refine DF to retain columns of interest
     bsh_agg = bsh_agg[
         [
-            'Pressure', 'BSH', 'AggregatedSensitivity', 'AssessedCount', 'UnassessedCount',
+            'Pressure', 'MCZ BSH', 'AggregatedSensitivity', 'AssessedCount', 'UnassessedCount',
             'AggregationConfidenceValue', 'AggregationConfidenceScore'
         ]
     ]
