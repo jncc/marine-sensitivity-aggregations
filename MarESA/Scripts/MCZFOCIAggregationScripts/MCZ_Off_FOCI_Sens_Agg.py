@@ -154,13 +154,13 @@ def main(marESA_file, marESA_tab):
 
     # Restructure the crossjoined DF to only retain columns of interest
     foci_unknown = foci_unknown_template_cjoin[
-        ['Habitat of Conservation Importance (HOCI)', 'Sub-split: Bioregion?', 'Biotope name', 'JNCC code', 'JNCC name',
+        ['FOCI', 'SubregionName', 'EUNIS name', 'JNCC code', 'JNCC name',
          'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
     # Refine the foci_maresa dF to match the columns of the newly created foci_unknown template
     foci_maresa = foci_maresa[
-        ['Habitat of Conservation Importance (HOCI)', 'Sub-split: Bioregion?', 'Biotope name', 'JNCC code', 'JNCC name',
+        ['FOCI', 'SubregionName', 'EUNIS name', 'JNCC code', 'JNCC name',
         'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
