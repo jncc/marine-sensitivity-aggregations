@@ -196,8 +196,8 @@ def main(marESA_file, marESA_tab):
     # simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        FOCI = row['Habitat of Conservation Importance (HOCI)']
-        bioregion = row['Sub-split: Bioregion?']
+        FOCI = row['FOCI']
+        bioregion = row['SubregionName']
         # Return a string of both individual targets combined by a ' - ' symbol
         return str(str(FOCI) + ' - ' + str(bioregion))
 
