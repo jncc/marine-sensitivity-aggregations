@@ -192,7 +192,7 @@ def main(marESA_file, marESA_tab):
     # Aggregation analyses
 
     # Aggregate data together by unique instances of HOCI and Bioregion
-    bsh_agg = bsh_maresa_unknowns.groupby(['Pressure', 'BSH'])['Sensitivity'].apply(lambda x: ', '.join(x))
+    bsh_agg = bsh_maresa_unknowns.groupby(['Pressure', 'MCZ BSH'])['Sensitivity'].apply(lambda x: ', '.join(x))
 
     # Convert the Pandas Series Object into a DataFrame to be manipulated later in the script
     bsh_agg = pd.DataFrame(bsh_agg)
