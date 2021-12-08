@@ -70,10 +70,6 @@ def main(marESA_file, marESA_tab):
     bsh['JNCC code'] = bsh['JNCC code'].str.strip()
     MarESA['JNCC_Code'] = MarESA['JNCC_Code'].str.strip()
 
-    # Refine bsh to only include yes and posible
-    bsh = bsh[bsh['Present in Canyons MCZ?'] != 'No']
-    bsh = bsh[bsh['Present in Canyons MCZ?'] != 'Unlikely']
-
     # Merge MarESA sensitivity assessments with all data within the bsh DF on JNCC code
     maresa_bsh_merge = pd.merge(bsh, MarESA, left_on='JNCC code', right_on='JNCC_Code', how='outer', indicator=True)
 
