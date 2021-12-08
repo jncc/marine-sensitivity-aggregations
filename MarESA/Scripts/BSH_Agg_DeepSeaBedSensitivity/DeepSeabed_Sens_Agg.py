@@ -447,7 +447,7 @@ def main(marESA_file, marESA_tab):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\DeepSeabed_Sens_Agg"
     # Define file name to save, categorised by date
     filename = "DeepSeabed_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
