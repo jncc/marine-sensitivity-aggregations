@@ -34,8 +34,10 @@ def main(marESA_file, marESA_tab):
     print('Deep sea sensitivity aggregation script started...')
 
     # Load in all BSH data from MS xlsx document
-    bsh = pd.read_excel("./Data/DeepSea_BSH.xlsx",
-        'BSH_Biotope_PresenceAbsence')
+    bsh = pd.read_excel(r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\Input dataset\English_Offshore_FOCI&BSH_2021-12-02.xlsx")
+
+    # Filter by presence of Deep-sea bed as BSH
+    bsh = bsh[bsh["MCZ BSH"] == "Deep-sea bed"]
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
