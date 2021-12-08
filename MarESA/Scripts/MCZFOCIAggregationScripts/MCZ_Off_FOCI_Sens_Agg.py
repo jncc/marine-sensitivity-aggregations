@@ -34,7 +34,14 @@ def main(marESA_file, marESA_tab):
     print('MCZ offshore FOCI sensitivity script started...')
 
     # Load in all FOCI data from MS xlsx document
-    foci = pd.read_excel("./Data/MCZ_HOCI_Offshore.xlsx", 'OffshoreDesignatedHOCI_ForAgg')
+    foci = pd.read_excel(r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\Input dataset\English_Offshore_FOCI&BSH_2021-12-02.xlsx")
+
+    # Create list of specific FOCI to run aggregation on
+    foci_list = ["Cold-water coral reefs", "Coral gardens", "Subtidal chalk",
+                 "Seapens and burrowing megafauna communities"]
+
+    # Filter imported FOCI spreadsheet by list of specific FOCI
+    foci = foci[foci["FOCI"].isin(foci_list)]
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
