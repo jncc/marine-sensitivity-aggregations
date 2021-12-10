@@ -34,7 +34,7 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     print('Deep sea sensitivity aggregation script started...')
 
     # Load in all BSH data from MS xlsx document
-    bsh = pd.read_excel("./Data/" + EnglishOffshore)
+    bsh = pd.read_csv("./Data/" + EnglishOffshore)
 
     # Filter by presence of Deep-sea bed as BSH
     bsh = bsh[bsh["MCZ BSH"] == "Deep-sea bed"]
