@@ -52,6 +52,8 @@ bioregions_ext = 'BioregionsExtract_20210802.xlsx'
 # correlation table for the offshore aggregation script
 cor_table = 'CorrelationTable_C16042020.xlsx'
 
+EnglishOffshore = 'English_Offshore_FOCI&BSH_2021-12-10.csv'
+
 # These names will be replaced with the output of a script
 # if the script isn't being run, enter the output of the offshore
 # resistance and resilience scripts here
