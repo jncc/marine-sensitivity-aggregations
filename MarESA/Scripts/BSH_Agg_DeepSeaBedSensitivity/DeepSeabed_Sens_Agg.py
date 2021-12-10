@@ -28,13 +28,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, marESA_tab, EnglishOffshore):
     # Test the run time of the function
     start = time.process_time()
     print('Deep sea sensitivity aggregation script started...')
 
     # Load in all BSH data from MS xlsx document
-    bsh = pd.read_excel(r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\Input dataset\English_Offshore_FOCI&BSH_2021-12-02.xlsx")
+    bsh = pd.read_excel("./Data/" + EnglishOffshore)
 
     # Filter by presence of Deep-sea bed as BSH
     bsh = bsh[bsh["MCZ BSH"] == "Deep-sea bed"]
@@ -447,7 +447,7 @@ def main(marESA_file, marESA_tab):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\DeepSeabed_Sens_Agg"
+    outpath = "./Output/"
     # Define file name to save, categorised by date
     filename = "DeepSeabed_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
