@@ -29,14 +29,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, marESA_tab, WelshBSH):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ Wales Inshore aggregation script started...')
 
     # Load in all BSH data from MS xlsx document
-    bsh = pd.read_excel("./Data/Welsh_Inshore_MCZ_Aggregation_Final.xlsx",
-        'MCZ_BSH_correlations_ForAgg')
+    bsh = pd.read_csv("./Data/" + WelshBSH)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -68,9 +67,6 @@ def main(marESA_file, marESA_tab):
 
     bsh['JNCC code'] = bsh['JNCC code'].str.strip()
     MarESA['JNCC_Code'] = MarESA['JNCC_Code'].str.strip()
-
-    # Rename BSH 'Bbiotope_name' column to match MarESA data
-    bsh.rename(columns={'Biotope name': 'JNCC name', }, inplace=True)
 
     # Merge MarESA sensitivity assessments with all data within the bsh DF on JNCC code
     maresa_bsh_merge = pd.merge(bsh, MarESA, left_on='JNCC code', right_on='JNCC_Code', how='outer', indicator=True)
@@ -153,12 +149,12 @@ def main(marESA_file, marESA_tab):
 
     # Restructure the crossjoined DF to only retain columns of interest
     bsh_unknown = bsh_unknown_template_cjoin[
-        ['MCZ BSH', 'Sub-split: Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ['BSH', 'Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
     # Refine the bsh_maresa dF to match the columns of the newly created bsh_unknown template
     bsh_maresa = bsh_maresa[
-        ['MCZ BSH', 'Sub-split: Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ['BSH', 'Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
     # Append the bsh_unknown into the refined bsh_maresa DF
@@ -193,8 +189,8 @@ def main(marESA_file, marESA_tab):
     # simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        BSH = row['MCZ BSH']
-        depth = row['Sub-split: Depth']
+        BSH = row['BSH']
+        depth = row['Depth']
         # Return a string of both individual targets combined by a ' - ' symbol
         return str(str(BSH) + ' - ' + str(depth))
 
@@ -471,7 +467,7 @@ def main(marESA_file, marESA_tab):
             return str(result[1])
 
     # Run the str_split() function to return the combined Feature data back into two separate columns
-    bsh_agg['MCZ BSH'] = bsh_agg.apply(lambda row: str_split(row, 'BSH'), axis=1)
+    bsh_agg['BSH'] = bsh_agg.apply(lambda row: str_split(row, 'BSH'), axis=1)
 
     # Run the str_split() function to return the combined Depth data back into two separate columns
     bsh_agg['Depth zone'] = bsh_agg.apply(
@@ -489,7 +485,7 @@ def main(marESA_file, marESA_tab):
     # Refine DF to retain columns of interest
     bsh_agg = bsh_agg[
         [
-            'Pressure', 'MCZ BSH', 'Depth zone', 'AggregatedSensitivity', 'AssessedCount', 'UnassessedCount',
+            'Pressure', 'BSH', 'Depth zone', 'AggregatedSensitivity', 'AssessedCount', 'UnassessedCount',
             'AggregationConfidenceValue', 'AggregationConfidenceScore'
         ]
     ]
