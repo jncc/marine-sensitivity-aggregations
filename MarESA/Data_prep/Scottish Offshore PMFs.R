@@ -167,6 +167,6 @@ for (i in bioregions_NCMPA_PMF){
 Scottish_offshore<-full_join(PMF, NCMPA_PMF) %>%
   select("PMF", "SubregionName", everything())
 
-# write as excel spreadsheet #
-write_xlsx(Scottish_offshore, path = paste0(outpath, "Scottish_Offshore_PMF_", Sys.Date(), ".xlsx"))
+# write as csv #
+write.csv(Scottish_offshore, file = paste0(outpath, "Scottish_Offshore_PMF_", Sys.Date(), ".csv"))
 

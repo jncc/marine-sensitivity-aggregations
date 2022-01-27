@@ -164,5 +164,5 @@ for (i in bioregions_scot_deepsea){
 All_scot<-full_join(Scot_Annex1, Scot_deepsea) %>%
   select(`Annex I habitat`, `Annex I sub-type`, `SubregionName`, `Classification level`, everything())
 
-write_xlsx(All_scot, path = paste0(outpath, "Scottish_Offshore_AnnexI_", Sys.Date(), ".xlsx"))
+write.csv(All_scot, file = paste0(outpath, "Scottish_Offshore_AnnexI_", Sys.Date(), ".csv"))
   

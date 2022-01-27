@@ -193,8 +193,8 @@ Alloffshore_bioregions<-Alloffshore_bioregions %>%
   select(`FOCI`, `MCZ BSH`, `SubregionName`, `Classification level`, everything())
 
 
-# write as excel spreadsheet #
-write_xlsx(Alloffshore_bioregions, path = paste0(outpath, "English_Offshore_FOCI&BSH_", Sys.Date(), ".xlsx"))
+# write as csv #
+write.csv(Alloffshore_bioregions, file = paste0(outpath, "English_Offshore_FOCI&BSH_", Sys.Date(), ".csv"))
 
 
 

@@ -109,5 +109,5 @@ for (i in bioregions_Annex1){
 Annex1<-Annex1 %>%
   select(`Annex I habitat`, `Annex I sub-feature`, `SubregionName`, `Classification level`, everything())
 
-# write as excel spreadsheet #
-write_xlsx(Annex1, path = paste0(outpath, "English_Welsh_Offshore_AnnexI_", Sys.Date(), ".xlsx"))
+# write as csv #
+write.csv(Annex1, file = paste0(outpath, "English_Welsh_Offshore_AnnexI_", Sys.Date(), ".csv"))

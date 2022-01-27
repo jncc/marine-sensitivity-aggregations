@@ -84,8 +84,8 @@ FOCI<-FOCI %>%
 FOCI<-FOCI %>%
   select(`FOCI`, `Depth`, everything())
 
-# save to outpath location
-write_xlsx(FOCI, path = paste0(outpath, "Welsh_Inshore_FOCI_", Sys.Date(), ".xlsx"))
+# save csv to outpath location
+write.csv(FOCI, file = paste0(outpath, "Welsh_Inshore_FOCI_", Sys.Date(), ".csv"))
 
 
 
@@ -138,5 +138,5 @@ BSH<-BSH %>%
 BSH<-BSH %>%
   select(`BSH`, `Depth`, everything())
 
-# write as excel spreadsheet to outpath location #
-write_xlsx(BSH, path = paste0(outpath, "Welsh_Inshore_BSH_", Sys.Date(), ".xlsx"))
+# write as csv to outpath location #
+write.csv(BSH, file = paste0(outpath, "Welsh_Inshore_BSH_", Sys.Date(), ".csv"))
