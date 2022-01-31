@@ -168,5 +168,5 @@ Scottish_offshore<-full_join(PMF, NCMPA_PMF) %>%
   select("PMF", "SubregionName", everything())
 
 # write as csv #
-write.csv(Scottish_offshore, file = paste0(outpath, "Scottish_Offshore_PMF_", Sys.Date(), ".csv"))
+write.csv(Scottish_offshore, file = paste0(outpath, "Scottish_Offshore_PMF_", Sys.Date(), ".csv"), row.names = F)
 

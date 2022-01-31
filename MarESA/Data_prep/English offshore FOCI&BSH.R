@@ -190,11 +190,12 @@ Alloffshore_bioregions<-bind_rows(FOCI, Deepsea) %>%
 
 # rearrange columns
 Alloffshore_bioregions<-Alloffshore_bioregions %>%
-  select(`FOCI`, `MCZ BSH`, `SubregionName`, `Classification level`, everything())
+  rename(BSH = `MCZ BSH`) %>%
+  select(`FOCI`, `BSH`, `SubregionName`, `Classification level`, everything())
 
 
 # write as csv #
-write.csv(Alloffshore_bioregions, file = paste0(outpath, "English_Offshore_FOCI&BSH_", Sys.Date(), ".csv"))
+write.csv(Alloffshore_bioregions, file = paste0(outpath, "English_Offshore_FOCI&BSH_", Sys.Date(), ".csv"), row.names = F)
 
 
 

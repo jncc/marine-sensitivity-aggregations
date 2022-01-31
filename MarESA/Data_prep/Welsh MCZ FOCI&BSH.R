@@ -85,7 +85,7 @@ FOCI<-FOCI %>%
   select(`FOCI`, `Depth`, everything())
 
 # save csv to outpath location
-write.csv(FOCI, file = paste0(outpath, "Welsh_Inshore_FOCI_", Sys.Date(), ".csv"))
+write.csv(FOCI, file = paste0(outpath, "Welsh_Inshore_FOCI_", Sys.Date(), ".csv"), row.names = F)
 
 
 
@@ -139,4 +139,4 @@ BSH<-BSH %>%
   select(`BSH`, `Depth`, everything())
 
 # write as csv to outpath location #
-write.csv(BSH, file = paste0(outpath, "Welsh_Inshore_BSH_", Sys.Date(), ".csv"))
+write.csv(BSH, file = paste0(outpath, "Welsh_Inshore_BSH_", Sys.Date(), ".csv"), row.names = F)

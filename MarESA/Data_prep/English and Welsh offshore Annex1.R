@@ -110,4 +110,4 @@ Annex1<-Annex1 %>%
   select(`Annex I habitat`, `Annex I sub-feature`, `SubregionName`, `Classification level`, everything())
 
 # write as csv #
-write.csv(Annex1, file = paste0(outpath, "English_Welsh_Offshore_AnnexI_", Sys.Date(), ".csv"))
+write.csv(Annex1, file = paste0(outpath, "English_Welsh_Offshore_AnnexI_", Sys.Date(), ".csv"), row.names = F)
