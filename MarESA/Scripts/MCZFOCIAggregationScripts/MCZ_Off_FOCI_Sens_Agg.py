@@ -34,7 +34,7 @@ def main(marESA_file, marESA_tab):
     print('MCZ offshore FOCI sensitivity script started...')
 
     # Load in all FOCI data from MS xlsx document
-    foci = pd.read_excel(r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\Input dataset\English_Offshore_FOCI&BSH_2021-12-02.xlsx")
+    foci = pd.read_csv("./Data/" + EnglishOffshore)
 
     # Create list of specific FOCI to run aggregation on
     foci_list = ["Cold-water coral reefs", "Coral gardens", "Subtidal chalk",
@@ -505,7 +505,7 @@ def main(marESA_file, marESA_tab):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\MCZ_Off\FOCI_Sens_Agg"
+    outpath = "./Output/"
     # Define file name to save, categorised by date
     filename = "MCZ_Off_FOCI_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
