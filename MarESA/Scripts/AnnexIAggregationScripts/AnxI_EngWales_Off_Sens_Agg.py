@@ -30,13 +30,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, marESA_tab, EngWel_Annex1):
     # Test the run time of the function
     start = time.process_time()
     print('Starting the anxI EngWales off sensitivity script...')
 
     # Load all Annex 1 sub-type data into Pandas DF from MS Office .xlsx docuent
-    annex1 = pd.read_excel("./Data/EnglishWelshOffshore_AnnexI.xlsx", 'BiotopesForAgg_Regions_subfeat', dtype=str)
+    annex1 = pd.read_csv("./Data/" + EngWel_Annex1)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -150,14 +150,14 @@ def main(marESA_file, marESA_tab):
 
     # Restructure the crossjoined DF to only retain columns of interest
     annex_unknown = annex_unknown_template_cjoin[
-        ['Subregion', 'JNCC_Code', 'Annex I habitat', 'Annex I sub feature type', 'Classification level', 'EUNIS code',
-         'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
+        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
     ]
 
     # Refine the annex_maresa dF to match the columns of the newly created annex_unknown template
     annex_maresa = annex_maresa[
-        ['Subregion', 'JNCC_Code', 'Annex I habitat', 'Annex I sub feature type', 'Classification level', 'EUNIS code',
-         'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
+        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
     ]
 
     # Append the annex_unknown into the refined annex_maresa DF
@@ -189,25 +189,25 @@ def main(marESA_file, marESA_tab):
 
     # Subset the annex_maresa_unknowns DF to only retain the columns of interest
     annex_maresa_unknowns = annex_maresa_unknowns[[
-        'Subregion', 'JNCC_Code', 'Annex I habitat', 'Annex I sub feature type', 'Classification level', 'EUNIS code',
-        'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
+        'SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+        'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
     ]]
 
     ####################################################################################################################
 
     # Remove any unwanted trailing whitespace from all elements to be combined in together() function
-    annex_maresa_unknowns['Subregion'] = annex_maresa_unknowns['Subregion'].str.strip()
+    annex_maresa_unknowns['SubregionName'] = annex_maresa_unknowns['SubregionName'].str.strip()
     annex_maresa_unknowns['Annex I habitat'] = annex_maresa_unknowns['Annex I habitat'].str.strip()
-    annex_maresa_unknowns['Annex I sub feature type'] = annex_maresa_unknowns['Annex I sub feature type'].str.strip()
+    annex_maresa_unknowns['Annex I sub-feature'] = annex_maresa_unknowns['Annex I sub-feature'].str.strip()
 
     # Create function which takes the Annex I Feature/SubFeature columns, and combines both entries into a single column
     # This enables the data to be grouped and aggregated using the .groupby() function (does not support multiple
     # simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        subb_r = row['Subregion']
+        subb_r = row['SubregionName']
         ann1 = row['Annex I habitat']
-        sub_f = row['Annex I sub feature type']
+        sub_f = row['Annex I sub-feature']
         # Return a string of both individual targets combined by a ' - ' symbol
         return str(subb_r) + ' - ' + str(str(ann1) + ' - ' + str(sub_f))
 
