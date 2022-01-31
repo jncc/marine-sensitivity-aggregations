@@ -29,13 +29,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, marESA_tab, WelshFOCI):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ Wales inshore FOCI script started...')
 
     # Load in all HOCI data from MS xlsx document
-    foci = pd.read_excel("./Data/Welsh_Inshore_MCZ_Aggregation_Final.xlsx", 'MCZ_HOCI_correlations_ForAgg')
+    foci = pd.read_csv("./Data/" + WelshFOCI)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -80,7 +80,7 @@ def main(marESA_file, marESA_tab):
 
     # Refine the foci_maresa DF for columns of interest
     foci_maresa = foci_maresa[
-        ['Habitat of Conservation Importance (HOCI)', 'Sub-split: Depth', 'Biotope name', 'JNCC code', 'JNCC name',
+        ['FOCI', 'Depth', 'EUNIS name', 'JNCC code', 'JNCC name',
          'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
@@ -113,8 +113,8 @@ def main(marESA_file, marESA_tab):
     # simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        FOCI = row['Habitat of Conservation Importance (HOCI)']
-        depth = row['Sub-split: Depth']
+        FOCI = row['FOCI']
+        depth = row['Depth']
         # Return a string of both individual targets combined by a ' - ' symbol
         return str(str(FOCI) + ' - ' + str(depth))
 
