@@ -63,14 +63,15 @@ offshore_resil_file = 'placeholder'
 # This part is for adding directory names to the path so that all the
 # scripts can be found
 # finding all the subdirectories in current folder
-dirs = [name for name in os.listdir('./Scripts/')
-            if os.path.isdir(os.path.join('./Scripts/', name))]
+dirs = [name for name in os.listdir('./MarESA/Scripts/')
+            if os.path.isdir(os.path.join('./MarESA/Scripts/', name))]
 # removing the Data folder
 rem_dirs = ['Data', 'Output']
 dirs = [dd for dd in dirs if dd not in rem_dirs]
 # adding each of the directories to the path
 for dd in dirs:
-    sys.path.append('./Scripts/' + dd)
+    print(dd)
+    sys.path.append('./MarESA/Scripts/' + dd)
 
 print('\n\n')
 
