@@ -41,13 +41,13 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
     # Import the JNCC Correlation Table as Pandas DataFrames - updated
     # with CorrelationTable_C16042020
-    CorrelationTable = pd.read_excel("./Data/" + cor_table,
+    CorrelationTable = pd.read_excel("./MarESA/Data/" + cor_table,
         'Correlations', dtype=str)
 
     # Import all data within the MarESA extract as Pandas DataFrame
-    #MarESA = pd.read_excel("./Data/" + marESA_file,
+    #MarESA = pd.read_excel("MarESA//" + marESA_file,
     #                       marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
     # Formatting the CorrelationTable DF
@@ -272,7 +272,7 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     # edited file
     #bioregions = pd.read_excel('./Data/BioregionsExtract_20210705.xlsx',
     #    dtype=str)
-    bioregions = pd.read_excel('./Data/' + bioregions_ext, dtype=str)
+    bioregions = pd.read_excel('./MarESA/Data/' + bioregions_ext, dtype=str)
 
     ############################################################
 
@@ -1298,7 +1298,7 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     # Export MasterFrame in CSV format  - Offshore Only
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by date
     filename = "OffshoreResilAgg_" + (time.strftime("%Y%m%d") + "_" + str(bioreg_version) + '_' + str(maresa_version) +
                                       ".csv")
