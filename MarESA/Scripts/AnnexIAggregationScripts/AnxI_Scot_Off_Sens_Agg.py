@@ -30,14 +30,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, marESA_tab, Scot_Annex1):
     # Test the run time of the function
     start = time.process_time()
     print('starting the anxI Scotland off sensitivity script...')
 
     # Load all Annex 1 sub-type data into Pandas DF from MS Office .xlsx docuent
-    annex1 = pd.read_excel("./Data/AnnexI_sub_types_all_v6.xlsx",
-                           'L5_OffBiotopesForAgg_Bioregions', dtype=str)
+    annex1 = pd.read_csv("./MarESA/Data/" + Scot_Annex1)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -151,15 +150,15 @@ def main(marESA_file, marESA_tab):
 
     # Restructure the crossjoined DF to only retain columns of interest
     annex_unknown = annex_unknown_template_cjoin[[
-        'Sub-split: Bioregion?', 'JNCC_Code', 'Annex I Habitat',
+        'SubregionName', 'JNCC_Code', 'Annex I habitat',
         'Annex I sub-type', 'Classification level', 'EUNIS code',
-        'Biotope name', 'JNCC code', 'JNCC name', 'Pressure',
+        'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure',
         'Resilience', 'Resistance', 'Sensitivity']]
 
     # Refine the annex_maresa dF to match the columns of the newly created annex_unknown template
     annex_maresa = annex_maresa[
-        ['Sub-split: Bioregion?', 'JNCC_Code', 'Annex I Habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
-         'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
+        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
     ]
 
     # Append the annex_unknown into the refined annex_maresa DF
@@ -191,14 +190,14 @@ def main(marESA_file, marESA_tab):
 
     # Subset the annex_maresa_unknowns DF to only retain the columns of interest
     annex_maresa_unknowns = annex_maresa_unknowns[[
-        'Sub-split: Bioregion?', 'JNCC_Code', 'Annex I Habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
-         'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
+        'SubregionName', 'JNCC_Code', 'Annex I Habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
     ]]
 
     ####################################################################################################################
 
     # Remove any unwanted trailing whitespace from all elements to be combined in together() function
-    annex_maresa_unknowns['Sub-split: Bioregion?'] = annex_maresa_unknowns['Sub-split: Bioregion?'].str.strip()
+    annex_maresa_unknowns['SubregionName'] = annex_maresa_unknowns['SubregionName'].str.strip()
     annex_maresa_unknowns['Annex I Habitat'] = annex_maresa_unknowns['Annex I Habitat'].str.strip()
     annex_maresa_unknowns['Annex I sub-type'] = annex_maresa_unknowns['Annex I sub-type'].str.strip()
 
@@ -207,7 +206,7 @@ def main(marESA_file, marESA_tab):
     # simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        subb_r = row['Sub-split: Bioregion?']
+        subb_r = row['SubregionName']
         ann1 = row['Annex I Habitat']
         sub_f = row['Annex I sub-type']
         # Return a string of both individual targets combined by a ' - ' symbol
