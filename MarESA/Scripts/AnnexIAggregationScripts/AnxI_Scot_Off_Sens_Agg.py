@@ -518,7 +518,7 @@ def main(marESA_file, marESA_tab, Scot_Annex1):
     # Export data
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by data
     filename = "AnxI_Scot_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) + ".csv")
     # Run the output DF.to_csv method
