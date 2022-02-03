@@ -44,7 +44,7 @@ def main(marESA_file, marESA_tab, Scot_Annex1):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
     # Create variable with the MarESA Extract version date to be used
