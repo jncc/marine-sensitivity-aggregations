@@ -53,6 +53,11 @@ bioregions_ext = 'BioregionsExtract_20210802.xlsx'
 cor_table = 'CorrelationTable_C16042020.xlsx'
 
 EnglishOffshore = 'English_Offshore_FOCI&BSH_2021-12-10.csv'
+WelshBSH = 'Welsh_Inshore_BSH_2022-01-31.csv'
+WelshFOCI = 'Welsh_Inshore_FOCI_2022-01-31.csv'
+EngWel_Annex1 = 'English_Welsh_Offshore_AnnexI_2022-01-31.csv'
+Scot_Annex1 = 'Scottish_Offshore_AnnexI_2022-01-31.csv'
+Scot_PMF = 'Scottish_Offshore_PMF_2022-01-31.csv'
 
 # These names will be replaced with the output of a script
 # if the script isn't being run, enter the output of the offshore
@@ -80,7 +85,7 @@ print('\n\n')
 #                   Off-shore aggregation
 #
 ########################################################################
-
+'''
 ########################################################################
 # Title: JNCC MarESA Sensitivity Aggregation (EUNIS)
 
@@ -117,20 +122,20 @@ offshore_resil_file = RcAO.main(
 # Title: Deep Seabed Sensitivity Aggregation
 
 import DeepSeabed_Sens_Agg as DSA
-DSA.main(marESA_file, marESA_tab)
-
+DSA.main(marESA_file, marESA_tab, EnglishOffshore)
+'''
 ########################################################################
 # Title: Deep Seabed Resilience Aggregation
 
 import DeepSeabed_Resil_Agg as DRA
 DRA.main(marESA_file, marESA_tab)
-
+'''
 ########################################################################
 # Title: MCZ Wales Inshore Broadscale Habitat Sensitivity Aggregation
 
 import MCZ_Wales_In_BSH_Sens_Agg as MWB
-MWB.main(marESA_file, marESA_tab)
-
+MWB.main(marESA_file, marESA_tab, WelshBSH)
+'''
 ########################################################################
 #
 #                 OSPAR: Common Indicator Extent of Physical
@@ -143,7 +148,7 @@ MWB.main(marESA_file, marESA_tab)
 
 import BH3_SensitivityCalculation as BH3SC
 BH3SC.main(offshore_res_file, offshore_resil_file)
-
+'''
 ########################################################################
 #
 #                 MCZ Feature of Conservation Importance
@@ -155,19 +160,19 @@ BH3SC.main(offshore_res_file, offshore_resil_file)
 # MCZ Offshore FeatureOfConservationImportance (FOCI) Sensitivity Aggregation
 
 import MCZ_Off_FOCI_Sens_Agg as MOFS
-MOFS.main(marESA_file, marESA_tab)
-
+MOFS.main(marESA_file, marESA_tab, EnglishOffshore)
+'''
 #############################################################
 # MCZ Offshore Feature of Conservation Importance (FOCI) Resilience Aggregation
 
 import MCZ_Off_FOCI_Resil_Agg as MOFR
 MOFR.main(marESA_file, marESA_tab)
-
+'''
 #############################################################
 # MCZ Wales Inshore Feature of Conservation Importance Sensitivity Aggregation
 
 import MCZ_Wales_In_FOCI_Sens_Agg as MWIFC
-MWIFC.main(marESA_file, marESA_tab)
+MWIFC.main(marESA_file, marESA_tab, WelshFOCI)
 
 ########################################################################
 #
@@ -179,8 +184,8 @@ MWIFC.main(marESA_file, marESA_tab)
 # Title: Annex I England and Wales Offshore Sensitivity Aggregation
 
 import AnxI_EngWales_Off_Sens_Agg as AEWOS
-AEWOS.main(marESA_file, marESA_tab)
-
+AEWOS.main(marESA_file, marESA_tab, EngWel_Annex1)
+'''
 #############################################################
 # Title: Annex I England and Wales Offshore Resilience Aggregation
 
@@ -192,12 +197,12 @@ AEWOR.main(marESA_file, marESA_tab)
 
 import AnxI_Scot_InOff_Sens_Agg as ASIOS
 ASIOS.main(marESA_file, marESA_tab)
-
+'''
 #############################################################
 # Title: Annex I  Scotland Offshore Sensitivity Aggregation
 
 import AnxI_Scot_Off_Sens_Agg as ASOS
-ASOS.main(marESA_file, marESA_tab)
+ASOS.main(marESA_file, marESA_tab, Scot_Annex1)
 
 ########################################################################
 #
@@ -209,7 +214,7 @@ ASOS.main(marESA_file, marESA_tab)
 # Title: PMF Offshore Sensitivity Aggregation
 
 import PMF_Off_Sens_Agg_ExDepth as POSAED
-POSAED.main(marESA_file, marESA_tab)
+POSAED.main(marESA_file, marESA_tab, Scot_PMF)
 
 ########################################################################
 #
