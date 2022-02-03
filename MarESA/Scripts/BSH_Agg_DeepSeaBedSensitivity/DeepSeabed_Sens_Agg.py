@@ -34,7 +34,7 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     print('Deep sea sensitivity aggregation script started...')
 
     # Load in all BSH data from MS xlsx document
-    bsh = pd.read_csv("./Data/" + EnglishOffshore)
+    bsh = pd.read_csv("./MarESA/Data/" + EnglishOffshore)
 
     # Filter by presence of Deep-sea bed as BSH
     bsh = bsh[bsh["MCZ BSH"] == "Deep-sea bed"]
@@ -45,7 +45,7 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
     # Create variable with the MarESA Extract version date to be used
@@ -447,7 +447,7 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by date
     filename = "DeepSeabed_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
