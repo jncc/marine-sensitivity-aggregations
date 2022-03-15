@@ -52,7 +52,12 @@ bioregions_ext = 'BioregionsExtract_20220310.xlsx'
 # correlation table for the offshore aggregation script
 cor_table = 'CorrelationTable_C16042020.xlsx'
 
-# EnglishOffshore = 'English_Offshore_FOCI&BSH_2021-12-10.csv'
+EnglishOffshore = 'English_Offshore_FOCI&BSH_2021-12-10.csv'
+WelshBSH = 'Welsh_Inshore_BSH_2022-01-31.csv'
+WelshFOCI = 'Welsh_Inshore_FOCI_2022-01-31.csv'
+EngWel_Annex1 = 'English_Welsh_Offshore_AnnexI_2022-01-31.csv'
+Scot_Annex1 = 'Scottish_Offshore_AnnexI_2022-01-31.csv'
+Scot_PMF = 'Scottish_Offshore_PMF_2022-01-31.csv'
 
 # These names will be replaced with the output of a script
 # if the script isn't being run, enter the output of the offshore

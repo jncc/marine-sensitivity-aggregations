@@ -35,7 +35,7 @@ def main(marESA_file, marESA_tab, WelshFOCI):
     print('MCZ Wales inshore FOCI script started...')
 
     # Load in all HOCI data from MS xlsx document
-    foci = pd.read_csv("./Data/" + WelshFOCI)
+    foci = pd.read_csv("./MarESA/Data/" + WelshFOCI)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -43,7 +43,7 @@ def main(marESA_file, marESA_tab, WelshFOCI):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
     # Create variable with the MarESA Extract version date to be used
@@ -405,21 +405,21 @@ def main(marESA_file, marESA_tab, WelshFOCI):
     foci_agg['Feature of Conservation Importance (FOCI)'] = foci_agg.apply(lambda row: str_split(row, 'FOCI'), axis=1)
 
     # Run the str_split() function to return the combined FOCI data back into a separate column
-    foci_agg['Sub-split: Depth'] = foci_agg.apply(lambda row: str_split(row, 'Depth'), axis=1)
+    foci_agg['Depth zone'] = foci_agg.apply(lambda row: str_split(row, 'Depth'), axis=1)
 
     # Drop redundant column from DF
     foci_agg.drop(['FOCIDepth'], axis=1, inplace=True)
 
     # Reorder columns within DF
     foci_agg = foci_agg[
-        ['Pressure', 'Feature of Conservation Importance (FOCI)', 'Sub-split: Depth', 'AggregatedSensitivity',
+        ['Pressure', 'Feature of Conservation Importance (FOCI)', 'Depth zone', 'AggregatedSensitivity',
          'AssessedCount', 'UnassessedCount', 'AggregationConfidenceValue', 'AggregationConfidenceScore']
     ]
 
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by date
     filename = "MCZ_Wales_In_FOCI_SensAgg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method

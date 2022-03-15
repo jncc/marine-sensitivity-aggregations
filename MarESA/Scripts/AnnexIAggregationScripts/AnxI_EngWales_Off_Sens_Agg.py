@@ -36,7 +36,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     print('Starting the anxI EngWales off sensitivity script...')
 
     # Load all Annex 1 sub-type data into Pandas DF from MS Office .xlsx docuent
-    annex1 = pd.read_csv("./Data/" + EngWel_Annex1)
+    annex1 = pd.read_csv("./MarESA/Data/" + EngWel_Annex1)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -44,7 +44,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
     # Create variable with the MarESA Extract version date to be used
@@ -517,7 +517,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     # Export data
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by data
     filename = "AnxI_EngWales_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method

@@ -28,14 +28,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, marESA_tab, Scot_PMF):
     # Test the run time of the function
     start = time.process_time()
     print('Starting the PMF sensitivity script...')
 
     # Load in all PMF data from MS xlsx document
-    pmf = pd.read_excel("./Data/NCMPA_PMF_Offshore.xlsx",
-                        'OffshoreDesignatedPMF_ForAgg')
+    pmf = pd.read_csv("./MarESA/Data/" + Scot_PMF)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -43,7 +42,7 @@ def main(marESA_file, marESA_tab):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
     # Create variable with the MarESA Extract version date to be used
@@ -65,7 +64,7 @@ def main(marESA_file, marESA_tab):
 
     # Strip all trailing whitespace from both the annex1 DF and the maresa DF prior to merging
     pmf['JNCC code'] = pmf['JNCC code'].str.strip()
-    pmf['Priority Marine Feature (PMF)'] = pmf['Priority Marine Feature (PMF)'].str.strip()
+    pmf['PMF'] = pmf['PMF'].str.strip()
     MarESA['JNCC_Code'] = MarESA['JNCC_Code'].str.strip()
 
     # Merge MarESA sensitivity assessments with all data within the pmf DF on JNCC code
@@ -149,13 +148,13 @@ def main(marESA_file, marESA_tab):
 
     # Restructure the crossjoined DF to only retain columns of interest
     pmf_unknown = pmf_unknown_template_cjoin[
-        ['Priority Marine Feature (PMF)', 'Sub-split: Bioregion', 'Biotope name', 'JNCC code',
+        ['PMF', 'SubregionName', 'EUNIS name', 'JNCC code',
          'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
     # Refine the pmf_maresa dF to match the columns of the newly created pmf_unknown template
     pmf_maresa = pmf_maresa[
-        ['Priority Marine Feature (PMF)', 'Sub-split: Bioregion', 'Biotope name', 'JNCC code',
+        ['PMF', 'SubregionName', 'EUNIS name', 'JNCC code',
          'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
     ]
 
@@ -191,8 +190,8 @@ def main(marESA_file, marESA_tab):
     # function (does not support multiple simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        PMF = row['Priority Marine Feature (PMF)']
-        bioreg = row['Sub-split: Bioregion']
+        PMF = row['PMF']
+        bioreg = row['SubregionName']
                # Return a string of both individual targets combined by a ' - ' symbol
         return str(str(PMF) + ' - ' + str(bioreg) + ' - ')
 
@@ -486,21 +485,21 @@ def main(marESA_file, marESA_tab):
     pmf_agg['Priority Marine Feature (PMF)'] = pmf_agg.apply(lambda row: str_split(row, 'PMF'), axis=1)
 
     # Run the str_split() function to return the combined FOCI data back into a separate column
-    pmf_agg['Sub-split: Bioregion'] = pmf_agg.apply(lambda row: str_split(row, 'Bioregion'), axis=1)
+    pmf_agg['Bioregion'] = pmf_agg.apply(lambda row: str_split(row, 'Bioregion'), axis=1)
 
     # Drop redundant column from DF
     pmf_agg.drop(['PMFBioregion'], axis=1, inplace=True)
 
     # Reorder columns within DF
     pmf_agg = pmf_agg[['Pressure', 'Priority Marine Feature (PMF)',
-        'Sub-split: Bioregion', 'AggregatedSensitivity',
+        'Bioregion', 'AggregatedSensitivity',
         'AssessedCount', 'UnassessedCount',
         'AggregationConfidenceValue', 'AggregationConfidenceScore']]
 
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by date
     filename = "PMF_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
