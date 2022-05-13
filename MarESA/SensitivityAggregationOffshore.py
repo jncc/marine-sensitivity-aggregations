@@ -1,35 +1,22 @@
-########################################################################################################################
-
 # Title: JNCC MarESA Sensitivity Aggregation (EUNIS)
 
-# Authors: Matear, L.(2019)                                                           Email: marinepressures@jncc.gov.uk
-# Version Control: 1.0
+# Aggregate MarESA sensitivity assessments for UK offshore biotopes on spatial location and
+# habitat classification system. For full detail of the methods used, please see:
+# https://hub.jncc.gov.uk/assets/faa8722e-865d-4d9f-ab0b-15a2eaa77db0
 
-# Script description:    Aggregate MarESA sensitivity assessments for UK offshore biotopes on spatial location and
-#                        habitat classification system. For full detail of the methods used, please see:
-#                        https://hub.jncc.gov.uk/assets/faa8722e-865d-4d9f-ab0b-15a2eaa77db0
+# Email: marinepressures@jncc.gov.uk
+# Authors: Matear, L.(2019), Kieran Fox (2022)
+# Version Control: 2.0
 
-#                        For any enquiries please contact marinepressures@jncc.gov.uk
-
-########################################################################################################################
-
-#                                      A. MarESA Preparation: Unknowns Automation                                      #
-
-########################################################################################################################
-
-# Import libraries used within the script, assign a working directory and import data
-
-# Import all Python libraries required
-import os
 import time
 import numpy as np
 import pandas as pd
+
+import maresa_lib as ml
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 #############################################################
-
-# remove the unknowns for the climate change pressures for the following level 6 biotopes: A5.5111, A5.5112 and A5.3611
-
 
 
 # Define the code as a function to be executed as necessary
@@ -45,7 +32,7 @@ def main(marESA_file, bioregions_ext):
 
     # Import the JNCC Correlation Table as Pandas DataFrames - updated
     # with CorrelationTable_C16042020
-    CorrelationTable = pd.read_excel("./MarESA/Data/CorrelationTable_C16042020.xlsx",
+    CorrelationTable = pd.read_excel("./Data/CorrelationTable_C16042020.xlsx",
         'Correlations', dtype=str)
 
     # Import all data within the MarESA extract as Pandas DataFrame
@@ -53,58 +40,16 @@ def main(marESA_file, bioregions_ext):
     # The top copy of the MarESA Extract can be found at the following
     # file path:
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
-    #MarESA = pd.read_excel("./MarESA/Data/" + marESA_file,
+    #MarESA = pd.read_excel("./Data/" + marESA_file,
     #                       marESA_tab,
     #                       dtype={'EUNIS_Code': str},
     #                       engine='xlrd')
-    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
+    MarESA = pd.read_csv("./Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
-    def fill_missing_maresa_rows(df):
-
-        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
-                    'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
-        pressure_cols = ['NE_Code', 'Pressure']
-        res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
-                'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
-                'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
-        
-        # finding all the unique habitats and pressures
-        df_habs = df[hab_cols].drop_duplicates()
-        df_pres = df[pressure_cols].drop_duplicates()
-
-        # creating all the possible combinations of habitat and pressure
-        df_cross = df_habs.merge(df_pres, how='cross')
-
-        # adds in the blank resistance columns 
-        df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
-
-        # append the blank ones on the end so that drop duplicates keeps
-        # the row with actual data if there is one
-        df_final = df.append(df_cross)
-        df_final.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
-
-        # blank rows should be filled with unknown to be picked up later
-        df_final[res_cols] = df_final[res_cols].fillna('Unknown')
-
-        return(df_final)
-
-    MarESA = fill_missing_maresa_rows(MarESA)
-
-    def remove_key_rows(df):
-        climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
-                   'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
-                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)', 
-                   'Marine heatwaves (Middle)']
-        bios = ['A5.5111', 'A5.5112', 'A5.3611']
-
-        # There was an issues with these three biotopes being duplicated in
-        # the feb 2022 run so we used this as a hot fix
-        df_cut = pd.concat([df[~df['EUNIS_Code'].isin(bios)], df[~df['Pressure'].isin(climate)]])
-        df_cut.drop_duplicates(inplace=True)
-        return(df_cut)
-    
-    MarESA = remove_key_rows(MarESA)
+    # Fills in the rows that have no data or are missing from the 
+    # maresa extract
+    MarESA = ml.fill_missing_maresa_rows(MarESA)
 
     # Subset data set to only comprise values where the listed biotopes
     # value is not recorded as False or 'nan'
@@ -122,30 +67,8 @@ def main(marESA_file, bioregions_ext):
 
     # Formatting the MarESA DF
 
-    # Adding a EUNIS level column to the DF based on the 'EUNIS_Code' column
-    # Function Title: eunis_lvl
-    def eunis_lvl(row):
-        """User defined function to pull out all data from the column 'EUNIS_Code' and return an integer dependant on
-        the EUNIS level in response"""
-
-        # Create object oriented variable to store EUNIS_Code data
-        ecode = str(row['EUNIS_Code'])
-        # Create if / elif conditions to produce response dependent on the string length of the inputted data
-        if len(ecode) == 1:
-            return '1'
-        elif len(ecode) == 2:
-            return '2'
-        elif len(ecode) == 4:
-            return '3'
-        elif len(ecode) == 5:
-            return '4'
-        elif len(ecode) == 6:
-            return '5'
-        elif len(ecode) == 7:
-            return '6'
-
     # Adding a EUNIS level column to the DF based on the 'EUNIS_Code' column - using the function
-    MarESA['EUNIS level'] = MarESA.apply(lambda row: eunis_lvl(row), axis=1)
+    MarESA['EUNIS level'] = MarESA.apply(lambda row: ml.eunis_lvl(row), axis=1)
 
     # Subset data set to exclude any EUNIS level 1, 2 and 3 data as these do not have associated sensitivity
     # assessments
@@ -219,30 +142,9 @@ def main(marESA_file, bioregions_ext):
     correlation_snippet = correlation_snippet[correlation_snippet.EUNIS_Code !=
                                               '104 EUNIS level 5 and 6 types 26 NVC types:']
 
-    # Create function to complete cross join / create cartesian product between two target DF
-
-    def df_crossjoin(df1, df2):
-        """
-        Make a cross join (cartesian product) between two dataframes by using a constant temporary key.
-        Also sets a MultiIndex which is the cartesian product of the indices of the input dataframes.
-        :param df1 dataframe 1
-        :param df1 dataframe 2
-
-        :return cross join of df1 and df2
-        """
-        df1.loc[:, '_tmpkey'] = 1
-        df2.loc[:, '_tmpkey'] = 1
-
-        res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
-        res.index = pd.MultiIndex.from_product((df1.index, df2.index))
-
-        df1.drop('_tmpkey', axis=1, inplace=True)
-        df2.drop('_tmpkey', axis=1, inplace=True)
-
-        return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
-    correlation_snippet_template = df_crossjoin(correlation_snippet, PressuresCodes)
+    correlation_snippet_template = ml.df_crossjoin(correlation_snippet, PressuresCodes)
 
     # Drop unwanted columns from the correlation_snippet_template data
     correlation_snippet_template.drop(['JNCC_Code_y', 'JNCC_Name_y', 'EUNIS_Code_y', 'EUNIS level_y'], axis=1,
@@ -272,71 +174,7 @@ def main(marESA_file, bioregions_ext):
     #
     ####################################################################
 
-    # Introduction
-
-    # This script allows the user to aggregate sensitivity data across varying tiers of EUNIS hierarchies.
-    # The main purpose of this code is to develop a mechanism through which the user can identify which completed
-    # assessments sit within which tiers of the EUNIS hierarchy. The outputs of these analyses should enable the user to
-    # map the spatial distribution of assessments made at EUNIS Levels 5 and 6 at less detailed resolutions
-    # (e.g. EUNIS Level 2 and / or EUNIS Level 3).
-
-    # For an overview of the aggregation process, please see the 'Methodology Infographic' file at the following
-    # web URL:
-    # https://github.com/jncc/pressures-and-impacts/tree/master/Sensitivity%20Assessments/Methodology%20Infographic
-
-    ####################################################################
-
-    # Initial setup and data import
-
-    # Load required data and assign to object oriented variables
-
-    # Run short analysis to identify the most recently created iteration of the BioregionsExtract and read this in for
-    # the aggregation process
-
-    # Define a directory to be searched
-    #bioreg_dir = r"J:\GISprojects\Marine\Sensitivity\MarESA aggregation\Aggregation_InputData\Aggregation_InputData\BioregionsExtract"
-    # Set this as the working directory
-    #os.chdir(bioreg_dir)
-    # Read in all files within this target directory
-    #bioreg_files = filter(os.path.isfile, os.listdir(bioreg_dir))
-    # Add full filepaths to the identified files within said directory
-    #bioreg_files = [os.path.join(bioreg_dir, f) for f in bioreg_files]
-    # Sort all files read in by the most recently edited first
-    #bioreg_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-
-    # Define the bioregions object containing the updated outputs from
-    # the Bioregions 2017 Contract - read the last
-    # edited file
-
-    bioregions = pd.read_excel('./MarESA/Data/' + bioregions_ext, dtype=str)
-
-    ############################################################
-
-    # Create an object variable storing the date of the bioregions
-    # version used - this is entered into the aggregation
-    # output file name for QC purposes.
-
-    # Re-split the string to remove the .csv file extension
-    bioreg_date = str(bioregions_ext).split('.')[0]
-    # Re-split the file name to only retain the date of creation
-    bioreg_date = str(bioreg_date).split('_')[-1]
-    # Create an abreviated version of the filename with the date
-    bioreg_version = 'Bioreg' + bioreg_date
-
-    # Create variable with the MarESA Extract version date to be used
-    # in the MarESA Aggregation output file name
-    # UPDATE THIS WHEN YOU UPDATE THE MarESA INPUT DATA
-
-    # Re-split the string to remove the .csv file extension
-    maresa_date = str(marESA_file).split('.')[0]
-    # Re-split the file name to only retain the date of creation
-    maresa_date = str(maresa_date).split('_')[-1]
-    # remove the hyphens
-    maresa_date = maresa_date.replace('-', '')
-    # Create an abreviated version of the filename with the date
-    maresa_version = 'marESA' + maresa_date
-
-    ############################################################
+    bioregions = pd.read_excel('./Data/' + bioregions_ext, dtype=str)
 
     # Develop a subset of the bioregions data which only contains EUNIS codes of string length 4 or greater
     # This will remove any unwanted EUNIS L1 - L3 from the data
@@ -410,30 +248,6 @@ def main(marESA_file, bioregions_ext):
 
     # Defining functions (aggregation process)
 
-    # Define all functions which are required within the script to execute aggregation process
-    # Function Title: counter
-    def counter(value):
-        """Count the total no. of occurrences of each sensitivity (high, medium, low, not sensitive, not relevant,
-          no evidence, not assessed, unknown
-          Return values to be assigned to new columns through lambda function"""
-        counthigh = value.count('High')
-        countmedium = value.count('Medium')
-        countlow = value.count('Low')
-        countns = value.count('Not sensitive')
-        countnr = value.count('Not relevant')
-        countne = value.count('No evidence')
-        countna = value.count('Not assessed')
-        countuk = value.count('Unknown')
-        return counthigh, countmedium, countlow, countns, countnr, countne, countna, countuk
-
-    # Function Title: replacer
-    def replacer(value, repstring):
-        """Perform string replace on each sensitivity count column (one set of duplicates only)"""
-        if value == 0:
-            return 'NA'
-        elif value != 0:
-            return repstring
-
     # Function Title: create_sensitivity
     def create_sensitivity(df):
         """Series of conditional statements which return a string value of all assessment values
@@ -480,201 +294,6 @@ def main(marESA_file, bioregions_ext):
             value.append(unk)
         s = ', '.join(value)
         return str(s)
-
-    # Function Title: final_sensitivity
-    def final_sensitivity(df):
-        """Create a return of a string value which gives final sensitivity score dependent on conditional statements"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        high = df['High']
-        med = df['Medium']
-        low = df['Low']
-        nsens = df['Not sensitive']
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-        value = []
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'High' in high:
-            h = 'High'
-            value.append(h)
-        if 'Medium' in med:
-            m = 'Medium'
-            value.append(m)
-        if 'Low' in low:
-            lo = 'Low'
-            value.append(lo)
-        if 'Not sensitive' in nsens:
-            ns = 'Not sensitive'
-            value.append(ns)
-        if 'High' not in high and 'Medium' not in med and 'Low' not in low and 'Not sensitive' not in nsens:
-            if 'Not relevant' in nrel:
-                nr = 'Not relevant'
-                value.append(nr)
-            if 'No evidence' in nev:
-                ne = 'No evidence'
-                value.append(ne)
-            if 'Not assessed' in n_ass:
-                nass = 'Not assessed'
-                value.append(nass)
-        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel and 'NA' in nev and \
-                'NA' in n_ass:
-            if 'Unknown' in un:
-                unk = 'Unknown'
-                value.append(unk)
-
-        s = ', '.join(value)
-        return str(s)
-
-    # Function Title: combine_assessedcounts
-    def combine_assessedcounts(df):
-        """Conditional statements which combine assessed count data and return as string value"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        high = df['High']
-        med = df['Medium']
-        low = df['Low']
-        nsens = df['Not sensitive']
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-        value = []
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'High' in high:
-            h = 'H(' + str(df['Count_High']) + ')'
-            value.append(h)
-        if 'Medium' in med:
-            m = 'M(' + str((df['Count_Medium'])) + ')'
-            value.append(m)
-        if 'Low' in low:
-            lo = 'L(' + str(df['Count_Low']) + ')'
-            value.append(lo)
-        if 'Not sensitive' in nsens:
-            ns = 'NS(' + str(df['Count_NotSensitive']) + ')'
-            value.append(ns)
-        if 'Not relevant' in nrel:
-            nr = 'NR(' + str(df['Count_NotRel']) + ')'
-            value.append(nr)
-        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel:
-            if 'No evidence' in nev:
-                ne = 'Not Applicable'
-                value.append(ne)
-            if 'Not assessed' in n_ass:
-                nass = 'Not Applicable'
-                value.append(nass)
-            if 'Unknown' in un:
-                unk = 'Not Applicable'
-                value.append(unk)
-        s = ', '.join(set(value))
-        return str(s)
-
-    # Function Title: combine_unassessedcounts
-    def combine_unassessedcounts(df):
-        """Conditional statements which combine unassessed count data and return as string value"""
-        # Create object oriented variable for each column of data from DataFrame (assessed only)
-        # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
-        nrel = df['Not relevant']
-        nev = df['No evidence']
-        n_ass = df['Not assessed']
-        un = df['Unknown']
-
-        # Create empty list for all string values to be appended into - this will be assigned to each field when data
-        # are iterated through using the lambdas function which follows immediately after this function
-
-        values = []
-
-        # Create series of conditional statements to append string values into the empty list ('value') if conditional
-        # statements are fulfilled
-        if 'No evidence' in nev:
-            ne = 'NE(' + str(df['Count_NoEvidence']) + ')'
-            values.append(ne)
-        if 'Not assessed' in n_ass:
-            na = 'NA(' + str(df['Count_NotAssessed']) + ')'
-            values.append(na)
-        if 'Unknown' in un:
-            unk = 'UN(' + str(df['Count_Unknown']) + ')'
-            values.append(unk)
-        # if 'NA' in nrel and 'NA' in nev and 'NA' in n_ass and 'NA' in un:
-        if 'NA' in nev and 'NA' in n_ass and 'NA' in un:
-            napp = 'Not Applicable'
-            values.append(napp)
-        s = ', '.join(set(values))
-        return str(s)
-
-    # Function Title: create_confidence
-    def create_confidence(df):
-        """Divide the total assessed counts by the total count of all data and return as numerical value"""
-        # Pull in assessed values counts
-        count_high = df['Count_High']
-        count_med = df['Count_Medium']
-        count_low = df['Count_Low']
-        count_ns = df['Count_NotSensitive']
-
-        # Pull in unassessed values counts
-        count_nr = df['Count_NotRel']
-        count_ne = df['Count_NoEvidence']
-        count_na = df['Count_NotAssessed']
-        count_unk = df['Count_Unknown']
-
-        # Create ratio calculation
-        total_ass = count_high + count_med + count_low + count_ns
-        total = total_ass + count_ne + count_na + count_unk
-
-        return round(total_ass / total, 3) if total else 0
-
-    # Function Title: categorise_confidence
-    def categorise_confidence(df, column):
-        """Partition and categorise confidence values by quantile intervals"""
-        if column == 'L2_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L3_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L4_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L5_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
-        elif column == 'L6_AggregationConfidenceValue':
-            value = df[column]
-            if value < 0.33:
-                return 'Low'
-            elif value >= 0.33 and value < 0.66:
-                return ' Medium'
-            elif value >= 0.66:
-                return 'High'
 
     # Function Title: column5
     def column5(df, column):
@@ -735,7 +354,7 @@ def main(marESA_file, bioregions_ext):
 
     # Create new 'EUNIS_Level' column which indicates the numerical value of the EUNIS level by passing the
     # bioreg_maresa_merge DF to the eunis_lvl() function.
-    bioreg_maresa_merge['EUNIS_Level'] = bioreg_maresa_merge.apply(lambda row: eunis_lvl(row), axis=1)
+    bioreg_maresa_merge['EUNIS_Level'] = bioreg_maresa_merge.apply(lambda row: ml.eunis_lvl(row), axis=1)
 
     ####################################################################################################################
 
@@ -759,7 +378,7 @@ def main(marESA_file, bioregions_ext):
     
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L6_processed[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
-                  'Unknown']] = L6_processed.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
+                  'Unknown']] = L6_processed.apply(lambda df: pd.Series(ml.counter(df['Sensitivity'])), axis=1)
     
     # Duplicate all count values and assign to new columns to be replaced by string values later
     L6_processed['Count_High'] = L6_processed['High']
@@ -778,7 +397,7 @@ def main(marESA_file, bioregions_ext):
     # assessment score
 
     for eachCol in colNames:
-        L6_processed[eachCol] = L6_processed[eachCol].apply(lambda x: replacer(x, eachCol))
+        L6_processed[eachCol] = L6_processed[eachCol].apply(lambda x: ml.replacer(x, eachCol))
 
     ####################################################################################################################
 
@@ -789,19 +408,19 @@ def main(marESA_file, bioregions_ext):
     
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
-    L6_processed['L6_FinalSensitivity'] = L6_processed.apply(lambda df: final_sensitivity(df), axis=1)
+    L6_processed['L6_FinalSensitivity'] = L6_processed.apply(lambda df: ml.final_sensitivity(df), axis=1)
 
     # Use lambda function to apply combine_assessedcounts() function to each row within the DataFrame
-    L6_processed['L6_AssessedCount'] = L6_processed.apply(lambda df: combine_assessedcounts(df), axis=1)
+    L6_processed['L6_AssessedCount'] = L6_processed.apply(lambda df: ml.combine_assessedcounts(df), axis=1)
 
     # Use lambda function to apply combine_unassessedcounts() function to each row within the DataFrame
-    L6_processed['L6_UnassessedCount'] = L6_processed.apply(lambda df: combine_unassessedcounts(df), axis=1)
+    L6_processed['L6_UnassessedCount'] = L6_processed.apply(lambda df: ml.combine_unassessedcounts(df), axis=1)
 
     # Apply column5() function to L6_processed DataFrame to create new Level_5 column
     L6_processed['Level_5'] = L6_processed.apply(lambda df: pd.Series(column5(df, 'Level_6')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
-    L6_processed['L6_AggregationConfidenceValue'] = L6_processed.apply(lambda df: create_confidence(df), axis=1)
+    L6_processed['L6_AggregationConfidenceValue'] = L6_processed.apply(lambda df: ml.create_confidence(df), axis=1)
 
     # Drop unwanted data from L6_processed DataFrame
     L6_processed = L6_processed.drop([
@@ -876,7 +495,7 @@ def main(marESA_file, bioregions_ext):
     aggregated_L6_to_L5[[
         'High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
         'Unknown'
-    ]] = aggregated_L6_to_L5.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
+    ]] = aggregated_L6_to_L5.apply(lambda df: pd.Series(ml.counter(df['Sensitivity'])), axis=1)
 
     # Duplicate all count values and assign to new columns to be replaced by string values later in code
     aggregated_L6_to_L5['Count_High'] = aggregated_L6_to_L5['High']
@@ -893,7 +512,7 @@ def main(marESA_file, bioregions_ext):
     # Run replacer() function on one set of newly duplicated columns to convert integers to string values of the
     # assessment score
     for eachCol in colNames:
-        aggregated_L6_to_L5[eachCol] = aggregated_L6_to_L5[eachCol].apply(lambda x: replacer(x, eachCol))
+        aggregated_L6_to_L5[eachCol] = aggregated_L6_to_L5[eachCol].apply(lambda x: ml.replacer(x, eachCol))
 
     ####################################################################################################################
 
@@ -905,22 +524,22 @@ def main(marESA_file, bioregions_ext):
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
     aggregated_L6_to_L5['L5_FinalSensitivity'] = \
-        aggregated_L6_to_L5.apply(lambda df: final_sensitivity(df), axis=1)
+        aggregated_L6_to_L5.apply(lambda df: ml.final_sensitivity(df), axis=1)
 
     # Use lambda function to apply combine_assessedcounts() function to each row within the DataFrame
     aggregated_L6_to_L5['L5_AssessedCount'] = \
-        aggregated_L6_to_L5.apply(lambda df: combine_assessedcounts(df), axis=1)
+        aggregated_L6_to_L5.apply(lambda df: ml.combine_assessedcounts(df), axis=1)
 
     # Use lambda function to apply combine_unassessedcounts() function to each row within the DataFrame
     aggregated_L6_to_L5['L5_UnassessedCount'] = \
-        aggregated_L6_to_L5.apply(lambda df: combine_unassessedcounts(df), axis=1)
+        aggregated_L6_to_L5.apply(lambda df: ml.combine_unassessedcounts(df), axis=1)
 
     # Apply column4() function to L6_processed DataFrame to create new Level_5 column
     aggregated_L6_to_L5['Level_4'] = aggregated_L6_to_L5.apply(lambda df: pd.Series(column4(df, 'Level_5')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
     aggregated_L6_to_L5['L5_AggregationConfidenceValue'] = \
-        aggregated_L6_to_L5.apply(lambda df: create_confidence(df), axis=1)
+        aggregated_L6_to_L5.apply(lambda df: ml.create_confidence(df), axis=1)
 
     # Drop unwanted data from L3_sens DataFrame
     L5_all = aggregated_L6_to_L5.drop([
@@ -1001,7 +620,7 @@ def main(marESA_file, bioregions_ext):
 
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L4_agg[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
-            'Unknown']] = L4_agg.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
+            'Unknown']] = L4_agg.apply(lambda df: pd.Series(ml.counter(df['Sensitivity'])), axis=1)
 
     # Duplicate all count values and assign to new columns to be replaced by string values later
     L4_agg['Count_High'] = L4_agg['High']
@@ -1019,7 +638,7 @@ def main(marESA_file, bioregions_ext):
     # Run replacer() function on one set of newly duplicated columns to convert integers to string values of the
     # assessment score
     for eachCol in colNames:
-        L4_sens[eachCol] = L4_sens[eachCol].apply(lambda x: replacer(x, eachCol))
+        L4_sens[eachCol] = L4_sens[eachCol].apply(lambda x: ml.replacer(x, eachCol))
 
     ####################################################################################################################
 
@@ -1029,19 +648,19 @@ def main(marESA_file, bioregions_ext):
     L4_sens['L4_Sensitivity'] = L4_sens.apply(lambda df: create_sensitivity(df), axis=1)
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
-    L4_sens['L4_FinalSensitivity'] = L4_sens.apply(lambda df: final_sensitivity(df), axis=1)
+    L4_sens['L4_FinalSensitivity'] = L4_sens.apply(lambda df: ml.final_sensitivity(df), axis=1)
 
     # Use lambda function to apply combine_assessedcounts() function to each row within the DataFrame
-    L4_sens['L4_AssessedCount'] = L4_sens.apply(lambda df: combine_assessedcounts(df), axis=1)
+    L4_sens['L4_AssessedCount'] = L4_sens.apply(lambda df: ml.combine_assessedcounts(df), axis=1)
 
     # Use lambda function to apply combine_unassessedcounts() function to each row within the DataFrame
-    L4_sens['L4_UnassessedCount'] = L4_sens.apply(lambda df: combine_unassessedcounts(df), axis=1)
+    L4_sens['L4_UnassessedCount'] = L4_sens.apply(lambda df: ml.combine_unassessedcounts(df), axis=1)
 
     # Apply column3() function to L4_sens DataFrame to create new Level_3 column
     L4_sens['Level_3'] = L4_sens.apply(lambda df: pd.Series(column3(df, 'Level_4')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
-    L4_sens['L4_AggregationConfidenceValue'] = L4_sens.apply(lambda df: create_confidence(df), axis=1)
+    L4_sens['L4_AggregationConfidenceValue'] = L4_sens.apply(lambda df: ml.create_confidence(df), axis=1)
 
     # Drop unwanted data from L3_sens DataFrame
     L4_sens = L4_sens.drop([
@@ -1084,7 +703,7 @@ def main(marESA_file, bioregions_ext):
 
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L3_agg[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
-            'Unknown']] = L3_agg.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
+            'Unknown']] = L3_agg.apply(lambda df: pd.Series(ml.counter(df['Sensitivity'])), axis=1)
 
     # Duplicate all count values and assign to new columns to be replaced by string values later
     L3_agg['Count_High'] = L3_agg['High']
@@ -1102,7 +721,7 @@ def main(marESA_file, bioregions_ext):
     # Run replacer() function on one set of newly duplicated columns to convert integers to string values of the
     # assessment score
     for eachCol in colNames:
-        L3_sens[eachCol] = L3_sens[eachCol].apply(lambda x: replacer(x, eachCol))
+        L3_sens[eachCol] = L3_sens[eachCol].apply(lambda x: ml.replacer(x, eachCol))
 
     ####################################################################################################################
 
@@ -1112,19 +731,19 @@ def main(marESA_file, bioregions_ext):
     L3_sens['L3_Sensitivity'] = L3_sens.apply(lambda df: create_sensitivity(df), axis=1)
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
-    L3_sens['L3_FinalSensitivity'] = L3_sens.apply(lambda df: final_sensitivity(df), axis=1)
+    L3_sens['L3_FinalSensitivity'] = L3_sens.apply(lambda df: ml.final_sensitivity(df), axis=1)
 
     # Use lambda function to apply combine_assessedcounts() function to each row within the DataFrame
-    L3_sens['L3_AssessedCount'] = L3_sens.apply(lambda df: combine_assessedcounts(df), axis=1)
+    L3_sens['L3_AssessedCount'] = L3_sens.apply(lambda df: ml.combine_assessedcounts(df), axis=1)
 
     # Use lambda function to apply combine_unassessedcounts() function to each row within the DataFrame
-    L3_sens['L3_UnassessedCount'] = L3_sens.apply(lambda df: combine_unassessedcounts(df), axis=1)
+    L3_sens['L3_UnassessedCount'] = L3_sens.apply(lambda df: ml.combine_unassessedcounts(df), axis=1)
 
     # Apply column2() function to L3_sens DataFrame to create new Level_2 column
     L3_sens['Level_2'] = L3_sens.apply(lambda df: pd.Series(column2(df, 'Level_3')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
-    L3_sens['L3_AggregationConfidenceValue'] = L3_sens.apply(lambda df: create_confidence(df), axis=1)
+    L3_sens['L3_AggregationConfidenceValue'] = L3_sens.apply(lambda df: ml.create_confidence(df), axis=1)
 
     # Drop unwanted data from L3_sens DataFrame
     L3_sens = L3_sens.drop([
@@ -1165,7 +784,7 @@ def main(marESA_file, bioregions_ext):
 
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L2_agg[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
-            'Unknown']] = L2_agg.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
+            'Unknown']] = L2_agg.apply(lambda df: pd.Series(ml.counter(df['Sensitivity'])), axis=1)
 
     # Duplicate all count values and assign to new columns to be replaced by string values later
     L2_agg['Count_High'] = L2_agg['High']
@@ -1183,7 +802,7 @@ def main(marESA_file, bioregions_ext):
     # Run replacer() function on one set of newly duplicated columns to convert integers to string values of the
     # assessment score
     for eachCol in colNames:
-        L2_sens[eachCol] = L2_sens[eachCol].apply(lambda x: replacer(x, eachCol))
+        L2_sens[eachCol] = L2_sens[eachCol].apply(lambda x: ml.replacer(x, eachCol))
 
     ####################################################################################################################
 
@@ -1193,16 +812,16 @@ def main(marESA_file, bioregions_ext):
     L2_sens['L2_Sensitivity'] = L2_sens.apply(lambda df: create_sensitivity(df), axis=1)
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
-    L2_sens['L2_FinalSensitivity'] = L2_sens.apply(lambda df: final_sensitivity(df), axis=1)
+    L2_sens['L2_FinalSensitivity'] = L2_sens.apply(lambda df: ml.final_sensitivity(df), axis=1)
 
     # Use lambda function to apply combine_assessedcounts() function to each row within the DataFrame
-    L2_sens['L2_AssessedCount'] = L2_sens.apply(lambda df: combine_assessedcounts(df), axis=1)
+    L2_sens['L2_AssessedCount'] = L2_sens.apply(lambda df: ml.combine_assessedcounts(df), axis=1)
 
     # Use lambda function to apply combine_unassessedcounts() function to each row within the DataFrame
-    L2_sens['L2_UnassessedCount'] = L2_sens.apply(lambda df: combine_unassessedcounts(df), axis=1)
+    L2_sens['L2_UnassessedCount'] = L2_sens.apply(lambda df: ml.combine_unassessedcounts(df), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
-    L2_sens['L2_AggregationConfidenceValue'] = L2_sens.apply(lambda df: create_confidence(df), axis=1)
+    L2_sens['L2_AggregationConfidenceValue'] = L2_sens.apply(lambda df: ml.create_confidence(df), axis=1)
 
     # Drop unwanted data from L2_sens DataFrame
     L2_sens = L2_sens.drop([
@@ -1252,23 +871,23 @@ def main(marESA_file, bioregions_ext):
 
     # Create categories for confidence values: EUNIS Level 5
     MasterFrame['L6_AggregationConfidenceScore'] = MasterFrame.apply(
-        lambda df: categorise_confidence(df, 'L6_AggregationConfidenceValue'), axis=1)
+        lambda df: ml.categorise_confidence(df, 'L6_AggregationConfidenceValue'), axis=1)
 
     # Create categories for confidence values: EUNIS Level 5
     MasterFrame['L5_AggregationConfidenceScore'] = MasterFrame.apply(
-        lambda df: categorise_confidence(df, 'L5_AggregationConfidenceValue'), axis=1)
+        lambda df: ml.categorise_confidence(df, 'L5_AggregationConfidenceValue'), axis=1)
 
     # Create categories for confidence values: EUNIS Level 4
     MasterFrame['L4_AggregationConfidenceScore'] = MasterFrame.apply(
-        lambda df: categorise_confidence(df, 'L4_AggregationConfidenceValue'), axis=1)
+        lambda df: ml.categorise_confidence(df, 'L4_AggregationConfidenceValue'), axis=1)
 
     # Create categories for confidence values: EUNIS Level 3
     MasterFrame['L3_AggregationConfidenceScore'] = MasterFrame.apply(
-        lambda df: categorise_confidence(df, 'L3_AggregationConfidenceValue'), axis=1)
+        lambda df: ml.categorise_confidence(df, 'L3_AggregationConfidenceValue'), axis=1)
 
     # Create categories for confidence values: EUNIS Level 2
     MasterFrame['L2_AggregationConfidenceScore'] = MasterFrame.apply(
-        lambda df: categorise_confidence(df, 'L2_AggregationConfidenceValue'), axis=1)
+        lambda df: ml.categorise_confidence(df, 'L2_AggregationConfidenceValue'), axis=1)
 
     ####################################################################################################################
 
@@ -1306,8 +925,9 @@ def main(marESA_file, bioregions_ext):
     # Export MasterFrame in CSV format  - Offshore Only
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
-    # Define file name to save, categorised by date
+    outpath = "./Output/"
+    bioreg_version = ml.get_file_v(bioregions_ext, 'Bioreg')
+    maresa_version = ml.get_file_v(marESA_file, 'marESA')
     filename = "OffshoreSensAgg_" + (time.strftime("%Y%m%d") + "_" + str(bioreg_version) + '_' + str(maresa_version) +
                                      ".csv")
     # Run the output DF.to_csv method
