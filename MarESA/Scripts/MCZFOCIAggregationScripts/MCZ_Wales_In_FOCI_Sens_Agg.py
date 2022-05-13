@@ -29,7 +29,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab, WelshFOCI):
+def main(marESA_file, WelshFOCI):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ Wales inshore FOCI script started...')
@@ -43,8 +43,54 @@ def main(marESA_file, marESA_tab, WelshFOCI):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
+
     MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
+    def fill_missing_maresa_rows(df):
+
+        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
+                    'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
+        pressure_cols = ['NE_Code', 'Pressure']
+        res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
+                'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
+                'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
+        
+        # finding all the unique habitats and pressures
+        df_habs = df[hab_cols].drop_duplicates()
+        df_pres = df[pressure_cols].drop_duplicates()
+
+        # creating all the possible combinations of habitat and pressure
+        df_cross = df_habs.merge(df_pres, how='cross')
+
+        # adds in the blank resistance columns 
+        df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
+
+        # append the blank ones on the end so that drop duplicates keeps
+        # the row with actual data if there is one
+        df_final = df.append(df_cross)
+        df_final.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
+        # blank rows should be filled with unknown to be picked up later
+        df_final[res_cols] = df_final[res_cols].fillna('Unknown')
+
+        return(df_final)
+
+    MarESA = fill_missing_maresa_rows(MarESA)
+
+    def remove_key_rows(df):
+        climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
+                   'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
+                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)', 
+                   'Marine heatwaves (Middle)']
+        bios = ['A5.5111', 'A5.5112', 'A5.3611']
+
+        # There was an issues with these three biotopes being duplicated in
+        # the feb 2022 run so we used this as a hot fix
+        df_cut = pd.concat([df[~df['EUNIS_Code'].isin(bios)], df[~df['Pressure'].isin(climate)]])
+        df_cut.drop_duplicates(inplace=True)
+        return(df_cut)
+    
+    MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -80,11 +126,93 @@ def main(marESA_file, marESA_tab, WelshFOCI):
 
     # Refine the foci_maresa DF for columns of interest
     foci_maresa = foci_maresa[
-        ['FOCI', 'Depth', 'EUNIS name', 'JNCC code', 'JNCC name',
-         'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ['FOCI', 'Depth','EUNIS name', 'JNCC code', 'JNCC name',
+         'Pressure', 'Resistance', 'Resilience', 'Sensitivity'] 
     ]
 
     #############################################################
+
+        #############################################################
+
+    # Step 1:
+    # Assign a full set of pressures with the value 'Unknown' to all foci data which do not have MarESA Assessments
+
+    # Create subset of all unique pressures and NE codes to be used for the append. Achieve this by filtering the MarESA
+    # DataFrame to only include the unique pressures from the pressures list.
+    PressuresCodes = MarESA.drop_duplicates(subset=['NE_Code', 'Pressure'], inplace=False)
+
+    # Set all values within the 'Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE', 'Resilience',
+    # 'ResilienceQoE', 'ResilienceAoE',  'resilienceDoE',  'Sensitivity',  'SensitivityQoE',  'SensitivityAoE',
+    # 'SensitivityDoE' columns to 'Unknown'
+
+    PressuresCodes.loc[:, 'Resistance'] = 'Unknown'
+    PressuresCodes.loc[:, 'ResistanceQoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'ResistanceAoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'ResistanceDoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'Resilience'] = 'Unknown'
+    PressuresCodes.loc[:, 'ResilienceQoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'ResilienceAoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'resilienceDoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'Sensitivity'] = 'Unknown'
+    PressuresCodes.loc[:, 'SensitivityQoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'SensitivityAoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'SensitivityDoE'] = 'Unknown'
+
+    # Change the following values to 'Not a Number' / nan values to be filled by the fill_metadata() function
+    PressuresCodes.loc[:, 'EUNIS_Code'] = np.nan
+    PressuresCodes.loc[:, 'Name'] = np.nan
+    PressuresCodes.loc[:, 'JNCC_Name'] = np.nan
+    PressuresCodes.loc[:, 'JNCC_Code'] = np.nan
+    PressuresCodes.loc[:, 'EUNIS level'] = np.nan
+
+    # Create template DF
+    Template_DF = PressuresCodes
+
+    # Create function to complete cross join / create cartesian product between two target DF
+
+    def df_crossjoin(df1, df2):
+        """
+        Make a cross join (cartesian product) between two dataframes by using a constant temporary key.
+        Also sets a MultiIndex which is the cartesian product of the indices of the input dataframes.
+        :param df1 dataframe 1
+        :param df1 dataframe 2
+
+        :return cross join of df1 and df2
+        """
+        df1.loc[:, '_tmpkey'] = 1
+        df2.loc[:, '_tmpkey'] = 1
+
+        res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
+        res.index = pd.MultiIndex.from_product((df1.index, df2.index))
+
+        df1.drop('_tmpkey', axis=1, inplace=True)
+        df2.drop('_tmpkey', axis=1, inplace=True)
+
+        return res
+
+    # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
+    foci_unknown_template_cjoin = df_crossjoin(foci_only, Template_DF)
+
+    # Rename columns to match MarESA data
+    foci_unknown_template_cjoin.rename(
+        columns={
+            'Pressure_y': 'Pressure', 'Resistance_y': 'Resistance',
+            'Resilience_y': 'Resilience', 'Sensitivity_y': 'Sensitivity', 'JNCC_Code_y': 'JNCC_Code'}, inplace=True)
+
+    # Restructure the crossjoined DF to only retain columns of interest
+    foci_unknown = foci_unknown_template_cjoin[
+        ['FOCI', 'Depth','EUNIS name', 'JNCC code', 'JNCC name',
+         'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+    ]
+
+    # Refine the foci_maresa dF to match the columns of the newly created foci_unknown template
+    foci_maresa = foci_maresa[
+        ['FOCI', 'Depth','EUNIS name', 'JNCC code', 'JNCC name',
+         'Pressure', 'Resistance', 'Resilience', 'Sensitivity'] 
+    ]
+
+    # Append the foci_unknown into the refined foci_maresa DF
+    foci_maresa = foci_maresa.append(foci_unknown, ignore_index=True)
 
     # Step 2:
     # Prepare the data for aggregation analyses
@@ -432,6 +560,8 @@ def main(marESA_file, marESA_tab, WelshFOCI):
     print('...The ' + str(filename) + ' script took ' + str(round(elapsed / 60, 1)) + ' minutes to run and complete.'
           + '\n' + 'This has been saved as a time-stamped output at the following filepath: ' + str(outpath) + '\n\n')
 
+if __name__ == "__main__":
 
+    main('habitatspressures_20220310.csv', 'Welsh_Inshore_FOCI_2022-03-16.csv')
 
 

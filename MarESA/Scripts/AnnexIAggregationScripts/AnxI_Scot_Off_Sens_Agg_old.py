@@ -1,15 +1,16 @@
 ########################################################################################################################
 
-# Title: Annex I England and Wales Offshore Resilience Aggregation
+# Title: Annex I Scotland Offshore Sensitivity Aggregation
 
-# Authors: Matear, L.(2020)                                                           Email: marinepressures@jncc.gov.uk
+# Authors: Matear, L.(2020)  & Robson, L. (2021)                     Email: marinepressures@jncc.gov.uk
 # Version Control: 1.0
 
-# Script description:    Aggregate MarESA resilience assessments for offshore Habitats Directive Annex I Features.
+# Script description:    Aggregate MarESA sensitivity assessments for offshore Habitats Directive Annex I Features.
 
 #                        For any enquiries please contact marinepressures@jncc.gov.uk
 
 ########################################################################################################################
+
 
 ########################################################################################################################
 
@@ -29,13 +30,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, EngWel_Annex1):
+def main(marESA_file, Scot_Annex1):
     # Test the run time of the function
     start = time.process_time()
-    print('Starting the anxI EngWales off resilience script...')
+    print('starting the anxI Scotland off sensitivity script...')
 
-    # Load all Annex 1 sub-type data into Pandas DF from MS Office .xlsx document
-    annex1 = pd.read_csv("./MarESA/Data/" + EngWel_Annex1)
+    # Load all Annex 1 sub-type data into Pandas DF from MS Office .xlsx docuent
+    annex1 = pd.read_csv("./MarESA/Data/" + Scot_Annex1)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -45,6 +46,9 @@ def main(marESA_file, EngWel_Annex1):
     #                        marESA_tab, dtype={'EUNIS_Code': str})
     MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
+    
+    MarESA.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
     def fill_missing_maresa_rows(df):
 
         hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
@@ -90,7 +94,7 @@ def main(marESA_file, EngWel_Annex1):
         return(df_cut)
     
     MarESA = remove_key_rows(MarESA)
-
+    
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
     # UPDATE THIS WHEN YOU UPDATE THE MarESA INPUT DATA
@@ -127,9 +131,6 @@ def main(marESA_file, EngWel_Annex1):
     # Step 1:
     # Assign a full set of pressures with the value 'Unknown' to all annex data which do not have MarESA Assessments
 
-    # Identify all pressures and assign as a list
-    maresa_pressures = list(MarESA['Pressure'].unique())
-
     # Create subset of all unique pressures and NE codes to be used for the append. Achieve this by filtering the MarESA
     # DataFrame to only include the unique pressures from the pressures list.
     PressuresCodes = MarESA.drop_duplicates(subset=['NE_Code', 'Pressure'], inplace=False)
@@ -158,9 +159,6 @@ def main(marESA_file, EngWel_Annex1):
     PressuresCodes.loc[:, 'JNCC_Code'] = np.nan
     PressuresCodes.loc[:, 'EUNIS level'] = np.nan
 
-    # Create template DF
-    Template_DF = PressuresCodes
-
     # Create function to complete cross join / create cartesian product between two target DF
 
     def df_crossjoin(df1, df2):
@@ -172,8 +170,12 @@ def main(marESA_file, EngWel_Annex1):
 
         :return cross join of df1 and df2
         """
-        df1.loc[:, '_tmpkey'] = 1
-        df2.loc[:, '_tmpkey'] = 1
+        try:
+            df1.loc[:, '_tmpkey'] = 1
+            df2.loc[:, '_tmpkey'] = 1
+        except:
+            return(pd.DataFrame(columns=['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']))
 
         res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
         res.index = pd.MultiIndex.from_product((df1.index, df2.index))
@@ -184,7 +186,7 @@ def main(marESA_file, EngWel_Annex1):
         return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
-    annex_unknown_template_cjoin = df_crossjoin(annex_only, Template_DF)
+    annex_unknown_template_cjoin = df_crossjoin(annex_only, PressuresCodes)
 
     # Rename columns to match MarESA data
     annex_unknown_template_cjoin.rename(
@@ -193,15 +195,16 @@ def main(marESA_file, EngWel_Annex1):
             'Resilience_y': 'Resilience', 'Sensitivity_y': 'Sensitivity', 'JNCC_Code_y': 'JNCC_Code'}, inplace=True)
 
     # Restructure the crossjoined DF to only retain columns of interest
-    annex_unknown = annex_unknown_template_cjoin[
-        ['Subregion', 'JNCC_Code', 'Annex I habitat', 'Annex I sub feature type', 'Classification level', 'EUNIS code',
-         'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
-    ]
+    annex_unknown = annex_unknown_template_cjoin[[
+        'SubregionName', 'JNCC_Code', 'Annex I habitat',
+        'Annex I sub-type', 'Classification level', 'EUNIS code',
+        'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure',
+        'Resilience', 'Resistance', 'Sensitivity']]
 
     # Refine the annex_maresa dF to match the columns of the newly created annex_unknown template
     annex_maresa = annex_maresa[
-        ['Subregion', 'JNCC_Code', 'Annex I habitat', 'Annex I sub feature type', 'Classification level', 'EUNIS code',
-         'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
+        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
     ]
 
     # Append the annex_unknown into the refined annex_maresa DF
@@ -213,6 +216,7 @@ def main(marESA_file, EngWel_Annex1):
     # Prepare the data for aggregation analyses
 
     # Reformat contents of assessment columns within DF
+    annex_maresa_unknowns = annex_maresa
     annex_maresa_unknowns['Sensitivity'].replace(["Not relevant (NR)"], "Not relevant", inplace=True)
     annex_maresa_unknowns['Sensitivity'].replace(["No evidence (NEv)"], "No evidence", inplace=True)
     annex_maresa_unknowns['Sensitivity'].replace(["Not assessed (NA)"], "Not assessed", inplace=True)
@@ -230,27 +234,18 @@ def main(marESA_file, EngWel_Annex1):
 
     # Fill NaN values with empty string values to allow for string formatting with unwanted_char() function
     annex_maresa_unknowns['Sensitivity'].fillna(value='', inplace=True)
-    annex_maresa_unknowns['Resistance'].fillna(value='', inplace=True)
-    annex_maresa_unknowns['Resilience'].fillna(value='', inplace=True)
-
-    annex_maresa_unknowns.rename(
-        columns={'Annex I habitat': 'Annex I Habitat', 'Annex I sub feature type': 'Annex I sub-type'}, inplace=True
-    )
 
     # Subset the annex_maresa_unknowns DF to only retain the columns of interest
     annex_maresa_unknowns = annex_maresa_unknowns[[
-        'JNCC_Code', 'Subregion', 'Annex I Habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
-        'Biotope name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
+        'SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
     ]]
 
     ####################################################################################################################
 
-    # Level 6 to 5 aggregation (sub-setting)
-
     # Remove any unwanted trailing whitespace from all elements to be combined in together() function
-
-    annex_maresa_unknowns['Subregion'] = annex_maresa_unknowns['Subregion'].str.strip()
-    annex_maresa_unknowns['Annex I Habitat'] = annex_maresa_unknowns['Annex I Habitat'].str.strip()
+    annex_maresa_unknowns['SubregionName'] = annex_maresa_unknowns['SubregionName'].str.strip()
+    annex_maresa_unknowns['Annex I habitat'] = annex_maresa_unknowns['Annex I habitat'].str.strip()
     annex_maresa_unknowns['Annex I sub-type'] = annex_maresa_unknowns['Annex I sub-type'].str.strip()
 
     # Create function which takes the Annex I Feature/SubFeature columns, and combines both entries into a single column
@@ -258,8 +253,8 @@ def main(marESA_file, EngWel_Annex1):
     # simultaneous aggregations)
     def together(row):
         # Pull in data from both columns of interest
-        subb_r = row['Subregion']
-        ann1 = row['Annex I Habitat']
+        subb_r = row['SubregionName']
+        ann1 = row['Annex I habitat']
         sub_f = row['Annex I sub-type']
         # Return a string of both individual targets combined by a ' - ' symbol
         return str(subb_r) + ' - ' + str(str(ann1) + ' - ' + str(sub_f))
@@ -268,16 +263,10 @@ def main(marESA_file, EngWel_Annex1):
     # to be aggregated
     annex_maresa_unknowns['SubregionFeatureSubFeature'] = annex_maresa_unknowns.apply(lambda row: together(row), axis=1)
 
-    # Change all Very Low values to lower case 'L' - 'Very low' to prevent erroneously string matching & counting
-    # the word 'Low' in Very Low.
-    annex_maresa_unknowns.loc[annex_maresa_unknowns['Resilience'] == 'Very Low', 'Resilience'] = 'Very low'
-    # Test this has worked - check values using .unique() on column of interest
-    annex_maresa_unknowns.Resilience.unique()
-
     # Group all L6 data by Sensitivity values
     maresa_annex_agg = annex_maresa_unknowns.groupby([
         'Pressure', 'SubregionFeatureSubFeature'
-    ])['Resilience'].apply(lambda x: ', '.join(x))
+    ])['Sensitivity'].apply(lambda x: ', '.join(x))
 
     # Convert the Pandas Series Object into a DataFrame to be manipulated later in the script
     maresa_annex_agg = pd.DataFrame(maresa_annex_agg)
@@ -288,30 +277,27 @@ def main(marESA_file, EngWel_Annex1):
     # Define function to count the number of assessment values
     # Function Title: counter
     def counter(value):
-        """Count the total no. of occurrences of each resilience (high, medium, low, not sensitive, not relevant,
+        """Count the total no. of occurrences of each sensitivity (high, medium, low, not sensitive, not relevant,
           no evidence, not assessed, unknown
           Return values to be assigned to new columns through lambda function"""
         counthigh = value.count('High')
         countmedium = value.count('Medium')
         countlow = value.count('Low')
-        countvlow = value.count('Very')
         countns = value.count('Not sensitive')
         countnr = value.count('Not relevant')
         countne = value.count('No evidence')
         countna = value.count('Not assessed')
         countuk = value.count('Unknown')
-        return counthigh, countmedium, countlow, countvlow, countns, countnr, countne, countna, countuk
+        return counthigh, countmedium, countlow, countns, countnr, countne, countna, countuk
 
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
-    maresa_annex_agg[[
-        'High', 'Medium', 'Low', 'Very low', 'Not sensitive', 'Not relevant', 'No evidence',
-        'Not assessed', 'Unknown']] = maresa_annex_agg.apply(lambda df: pd.Series(counter(df['Resilience'])), axis=1)
+    maresa_annex_agg[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
+                  'Unknown']] = maresa_annex_agg.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
 
     # Duplicate all count values and assign to new columns to be replaced by string values later
     maresa_annex_agg['Count_High'] = maresa_annex_agg['High']
     maresa_annex_agg['Count_Medium'] = maresa_annex_agg['Medium']
     maresa_annex_agg['Count_Low'] = maresa_annex_agg['Low']
-    maresa_annex_agg['Count_vLow'] = maresa_annex_agg['Very low']
     maresa_annex_agg['Count_NotSensitive'] = maresa_annex_agg['Not sensitive']
     maresa_annex_agg['Count_NotRel'] = maresa_annex_agg['Not relevant']
     maresa_annex_agg['Count_NoEvidence'] = maresa_annex_agg['No evidence']
@@ -319,8 +305,7 @@ def main(marESA_file, EngWel_Annex1):
     maresa_annex_agg['Count_Unknown'] = maresa_annex_agg['Unknown']
 
     # Create colNames list for use with replacer() function
-    colNames = ['High', 'Medium', 'Low', 'Very low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
-                'Unknown']
+    colNames = ['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed', 'Unknown']
 
     # Define replacer() function to fill a numerical with the repstring being analysed
     # Function Title: replacer
@@ -339,13 +324,12 @@ def main(marESA_file, EngWel_Annex1):
     ####################################################################################################################
 
     # Function Title: final_sensitivity
-    def final_resilience(df):
-        """Create a return of a string value which gives final resilience score dependent on conditional statements"""
+    def final_sensitivity(df):
+        """Create a return of a string value which gives final sensitivity score dependent on conditional statements"""
         # Create object oriented variable for each column of data from DataFrame (assessed only)
         high = df['High']
         med = df['Medium']
         low = df['Low']
-        vlow = df['Very low']
         nsens = df['Not sensitive']
         # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
         nrel = df['Not relevant']
@@ -367,14 +351,10 @@ def main(marESA_file, EngWel_Annex1):
         if 'Low' in low:
             lo = 'Low'
             value.append(lo)
-        if 'Very low' in vlow:
-            vlo = 'Very low'
-            value.append(vlo)
         if 'Not sensitive' in nsens:
             ns = 'Not sensitive'
             value.append(ns)
-        if 'High' not in high and 'Medium' not in med and 'Low' not in low and 'Very low' not in vlow and \
-                'Not sensitive' not in nsens:
+        if 'High' not in high and 'Medium' not in med and 'Low' not in low and 'Not sensitive' not in nsens:
             if 'Not relevant' in nrel:
                 nr = 'Not relevant'
                 value.append(nr)
@@ -384,17 +364,17 @@ def main(marESA_file, EngWel_Annex1):
             if 'Not assessed' in n_ass:
                 nass = 'Not assessed'
                 value.append(nass)
-            if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in vlow and 'NA' in nsens and 'NA' in nrel and \
-                    'NA' in nev and 'NA' in n_ass:
-                if 'Unknown' in un:
-                    unk = 'Unknown'
-                    value.append(unk)
+        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel and 'NA' in nev and \
+                'NA' in n_ass:
+            if 'Unknown' in un:
+                unk = 'Unknown'
+                value.append(unk)
 
         s = ', '.join(value)
         return str(s)
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
-    maresa_annex_agg['AggregatedResilience'] = maresa_annex_agg.apply(lambda df: final_resilience(df), axis=1)
+    maresa_annex_agg['AggregatedSensitivity'] = maresa_annex_agg.apply(lambda df: final_sensitivity(df), axis=1)
 
     # Define function to calculate the total count of all assessed values
     # Function Title: combine_assessedcounts
@@ -404,7 +384,6 @@ def main(marESA_file, EngWel_Annex1):
         high = df['High']
         med = df['Medium']
         low = df['Low']
-        vlow = df['Very low']
         nsens = df['Not sensitive']
         # Create object oriented variable for each column of data from DataFrame (not assessment criteria only)
         nrel = df['Not relevant']
@@ -426,16 +405,17 @@ def main(marESA_file, EngWel_Annex1):
         if 'Low' in low:
             lo = 'L(' + str(df['Count_Low']) + ')'
             value.append(lo)
-        if 'Very' in vlow:
-            lo = 'vL(' + str(df['Count_vLow']) + ')'
-            value.append(lo)
         if 'Not sensitive' in nsens:
             ns = 'NS(' + str(df['Count_NotSensitive']) + ')'
             value.append(ns)
         if 'Not relevant' in nrel:
             nr = 'NR(' + str(df['Count_NotRel']) + ')'
             value.append(nr)
-        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in vlow and 'NA' in nsens and 'NA' in nrel:
+        if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens and 'NA' in nrel:
+            # if 'NA' in high and 'NA' in med and 'NA' in low and 'NA' in nsens:
+            # if 'Not relevant' in nrel:
+            #     nr = 'Not Applicable'
+            #     value.append(nr)
             if 'No evidence' in nev:
                 ne = 'Not Applicable'
                 value.append(ne)
@@ -496,7 +476,6 @@ def main(marESA_file, EngWel_Annex1):
         count_high = df['Count_High']
         count_med = df['Count_Medium']
         count_low = df['Count_Low']
-        count_vlow = df['Count_vLow']
         count_ns = df['Count_NotSensitive']
 
         # Pull in unassessed values counts
@@ -506,7 +485,7 @@ def main(marESA_file, EngWel_Annex1):
         count_unk = df['Count_Unknown']
 
         # Create ratio calculation
-        total_ass = count_high + count_med + count_low + count_vlow + count_ns
+        total_ass = count_high + count_med + count_low + count_ns
         total = total_ass + count_ne + count_na + count_unk
 
         return round(total_ass / total, 3) if total else 0
@@ -532,14 +511,15 @@ def main(marESA_file, EngWel_Annex1):
 
     # Refine DF to retain columns of interest
     maresa_annex_agg = maresa_annex_agg[
-        ['Pressure', 'SubregionFeatureSubFeature', 'AggregatedResilience', 'AssessedCount', 'UnassessedCount',
+        ['Pressure', 'SubregionFeatureSubFeature', 'AggregatedSensitivity', 'AssessedCount', 'UnassessedCount',
          'AggregationConfidenceValue', 'AggregationConfidenceScore']
     ]
 
     ####################################################################################################################
 
-    # Split the FeatureSubFeature column back into the individual columns once aggregated by unique combination of
-    # Feature and Sub-Feature.
+    # Split the SubregionFeatureSubFeature column back into the individual columns once aggregated by unique combination
+    # of Feature and Sub-Feature.
+
     def str_split(row, str_interval):
         # Import the target column into the local scope of the function
         target_col = row['SubregionFeatureSubFeature']
@@ -567,26 +547,27 @@ def main(marESA_file, EngWel_Annex1):
     maresa_annex_agg['Bioregion'] = maresa_annex_agg.apply(lambda row: str_split(row, 'Subregion'), axis=1)
 
     # Run the str_split() function to return the combined Feature data back into two separate columns
-    maresa_annex_agg['Annex I Habitat'] = maresa_annex_agg.apply(lambda row: str_split(row, 'Feature'), axis=1)
+    maresa_annex_agg['Annex I habitat'] = maresa_annex_agg.apply(lambda row: str_split(row, 'Feature'), axis=1)
 
     # Run the str_split() function to return the combined SubFeature data back into two separate columns
     maresa_annex_agg['Annex I sub-type'] = maresa_annex_agg.apply(lambda row: str_split(row, 'SubFeature'), axis=1)
 
     # Rearrange columns correctly into DataFrame schema
     maresa_annex_agg = maresa_annex_agg[[
-        'Pressure', 'Bioregion', 'Annex I Habitat', 'Annex I sub-type', 'AggregatedResilience', 'AssessedCount',
-        'UnassessedCount', 'AggregationConfidenceValue', 'AggregationConfidenceScore'
+        'Pressure', 'Bioregion', 'Annex I habitat', 'Annex I sub-type',
+        'AggregatedSensitivity', 'AssessedCount', 'UnassessedCount',
+        'AggregationConfidenceValue', 'AggregationConfidenceScore'
     ]]
 
-    # Remove all data from the DF which is flagged to be NaN within the 'Annex I Habitat' column
-    maresa_annex_agg = maresa_annex_agg[maresa_annex_agg['Annex I Habitat'] != 'nan']
+    # Remove all data from the DF which is flagged to be NaN within the 'Annex I habitat' column
+    maresa_annex_agg = maresa_annex_agg[maresa_annex_agg['Annex I habitat'] != 'nan']
 
     # Export data
 
     # Define folder file path to be saved into
     outpath = "./MarESA/Output/"
-    # Define file name to save, categorised by date
-    filename = "AnxI_EngWales_Off_Resil_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
+    # Define file name to save, categorised by data
+    filename = "AnxI_Scot_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) + ".csv")
     # Run the output DF.to_csv method
     maresa_annex_agg.to_csv(outpath + filename, sep=',')
 
@@ -599,4 +580,9 @@ def main(marESA_file, EngWel_Annex1):
         str(round(elapsed / 60, 1)) + ' minutes to run and complete.' +
            '\n' + 'This has been saved as a time-stamped output at ' +
            'the following filepath: ' + str(outpath) + '\n\n')
+
+
+if __name__ == "__main__":
+
+    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv')
 

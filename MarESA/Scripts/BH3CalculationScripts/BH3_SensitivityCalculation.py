@@ -53,7 +53,7 @@ def main(resistance_file, resilience_file):
     # edited file
     #resistance_masterframeOFF = pd.read_csv(res_files[0], dtype=str)
 
-    resistance_masterframeOFF = pd.read_csv('./Output/' + resistance_file,
+    resistance_masterframeOFF = pd.read_csv('./Maresa/Output/' + resistance_file,
         dtype=str)
 
     ############################################################
@@ -86,7 +86,7 @@ def main(resistance_file, resilience_file):
     # edited file
     #resilience_masterframeOFF = pd.read_csv(resil_files[0], dtype=str)
 
-    resilience_masterframeOFF = pd.read_csv('./Output/' + resilience_file,
+    resilience_masterframeOFF = pd.read_csv('./Maresa/Output/' + resilience_file,
         dtype=str)
 
     ############################################################
@@ -1343,7 +1343,7 @@ def main(resistance_file, resilience_file):
     # Export the output res_resil_mergeOFF DF with all computed BH3 values
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by date
     filename = "BH3_OffSens_" + (time.strftime("%Y%m%d") + '_' + str(res_version) + '_'
                                                          + str(resil_version) + ".csv")

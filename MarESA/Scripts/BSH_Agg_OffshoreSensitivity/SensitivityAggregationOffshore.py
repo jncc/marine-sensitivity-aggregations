@@ -28,9 +28,12 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 #############################################################
 
+# remove the unknowns for the climate change pressures for the following level 6 biotopes: A5.5111, A5.5112 and A5.3611
+
+
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
+def main(marESA_file, bioregions_ext):
     # Test the run time of the function
     start = time.process_time()
     print('Offshore sensitivity aggregation script started...')
@@ -42,7 +45,7 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
     # Import the JNCC Correlation Table as Pandas DataFrames - updated
     # with CorrelationTable_C16042020
-    CorrelationTable = pd.read_excel("./MarESA/Data/" + cor_table,
+    CorrelationTable = pd.read_excel("./MarESA/Data/CorrelationTable_C16042020.xlsx",
         'Correlations', dtype=str)
 
     # Import all data within the MarESA extract as Pandas DataFrame
@@ -57,12 +60,51 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
-    # Formatting the CorrelationTable DF
-    test = CorrelationTable.loc[CorrelationTable['UK Habitat'].isin(['False'])]
+    def fill_missing_maresa_rows(df):
 
-    test = CorrelationTable.loc[CorrelationTable['UK Habitat'] == 'False']
+        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
+                    'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
+        pressure_cols = ['NE_Code', 'Pressure']
+        res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
+                'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
+                'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
+        
+        # finding all the unique habitats and pressures
+        df_habs = df[hab_cols].drop_duplicates()
+        df_pres = df[pressure_cols].drop_duplicates()
 
-    test = CorrelationTable['UK Habitat'].unique()
+        # creating all the possible combinations of habitat and pressure
+        df_cross = df_habs.merge(df_pres, how='cross')
+
+        # adds in the blank resistance columns 
+        df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
+
+        # append the blank ones on the end so that drop duplicates keeps
+        # the row with actual data if there is one
+        df_final = df.append(df_cross)
+        df_final.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
+        # blank rows should be filled with unknown to be picked up later
+        df_final[res_cols] = df_final[res_cols].fillna('Unknown')
+
+        return(df_final)
+
+    MarESA = fill_missing_maresa_rows(MarESA)
+
+    def remove_key_rows(df):
+        climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
+                   'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
+                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)', 
+                   'Marine heatwaves (Middle)']
+        bios = ['A5.5111', 'A5.5112', 'A5.3611']
+
+        # There was an issues with these three biotopes being duplicated in
+        # the feb 2022 run so we used this as a hot fix
+        df_cut = pd.concat([df[~df['EUNIS_Code'].isin(bios)], df[~df['Pressure'].isin(climate)]])
+        df_cut.drop_duplicates(inplace=True)
+        return(df_cut)
+    
+    MarESA = remove_key_rows(MarESA)
 
     # Subset data set to only comprise values where the listed biotopes
     # value is not recorded as False or 'nan'
@@ -131,9 +173,6 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     CorrelationTable_Subset.rename(columns={'EUNIS code 2007': 'EUNIS_Code', 'EUNIS name 2007': 'JNCC_Name',
                                             'JNCC 15.03 code': 'JNCC_Code'}, inplace=True)
 
-    # Pull out list of all unique pressures
-    Pressures = list(MarESA['Pressure'].unique())
-
     # Create subset of all unique pressures and NE codes to be used for the append. Achieve this by filtering the MarESA
     # DataFrame to only include the unique pressures from the pressures list.
     PressuresCodes = MarESA.drop_duplicates(subset=['NE_Code', 'Pressure'], inplace=False)
@@ -166,9 +205,6 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
     # Create list of all unique EUNIS codes in new correlation table data
     CorrelationEUNIS_list = list(CorrelationTable['EUNIS code 2007'].unique())
-
-    # Create template DF
-    Template_DF = PressuresCodes
 
     # Create snippet of the correlation table including only the unique biotope codes which do not exist in the MarESA
     # data
@@ -206,7 +242,7 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
         return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
-    correlation_snippet_template = df_crossjoin(correlation_snippet, Template_DF)
+    correlation_snippet_template = df_crossjoin(correlation_snippet, PressuresCodes)
 
     # Drop unwanted columns from the correlation_snippet_template data
     correlation_snippet_template.drop(['JNCC_Code_y', 'JNCC_Name_y', 'EUNIS_Code_y', 'EUNIS level_y'], axis=1,
@@ -720,11 +756,11 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
     # Reset columns within L6_processed DataFrame
     L6_processed.columns = ['Level_6', 'Pressure', 'SubregionName', 'Sensitivity']
-
+    
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L6_processed[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
                   'Unknown']] = L6_processed.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
-
+    
     # Duplicate all count values and assign to new columns to be replaced by string values later
     L6_processed['Count_High'] = L6_processed['High']
     L6_processed['Count_Medium'] = L6_processed['Medium']
@@ -734,12 +770,13 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     L6_processed['Count_NoEvidence'] = L6_processed['No evidence']
     L6_processed['Count_NotAssessed'] = L6_processed['Not assessed']
     L6_processed['Count_Unknown'] = L6_processed['Unknown']
-
+    
     # Create colNames list for use with replacer() function
     colNames = ['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed', 'Unknown']
 
     # Run replacer() function on one set of newly duplicated columns to convert integers to string values of the
     # assessment score
+
     for eachCol in colNames:
         L6_processed[eachCol] = L6_processed[eachCol].apply(lambda x: replacer(x, eachCol))
 
@@ -749,6 +786,7 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
     # Use lambda function to apply create_sensitivity() function to each row within the DataFrame
     L6_processed['L6_Sensitivity'] = L6_processed.apply(lambda df: create_sensitivity(df), axis=1)
+    
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
     L6_processed['L6_FinalSensitivity'] = L6_processed.apply(lambda df: final_sensitivity(df), axis=1)
@@ -777,7 +815,9 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     L6_processed = L6_processed[L6_processed['Level_6'] != 'A5.7112']
 
     ####################################################################################################################
-
+    
+    ############# I AM HERE ##############
+    
     # Creating an aggregated export
 
     # Create DataFrame for master DataFrame at end of script
@@ -853,8 +893,7 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
     # Run replacer() function on one set of newly duplicated columns to convert integers to string values of the
     # assessment score
     for eachCol in colNames:
-        aggregated_L6_to_L5[eachCol] = \
-            aggregated_L6_to_L5[eachCol].apply(lambda x: replacer(x, eachCol))
+        aggregated_L6_to_L5[eachCol] = aggregated_L6_to_L5[eachCol].apply(lambda x: replacer(x, eachCol))
 
     ####################################################################################################################
 
@@ -1285,3 +1324,6 @@ def main(marESA_file, marESA_tab, cor_table, bioregions_ext):
 
 
 
+if __name__ == "__main__":
+
+    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'BioregionsExtract_20220310.xlsx')

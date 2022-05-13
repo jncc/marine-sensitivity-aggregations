@@ -115,44 +115,47 @@ start = time.process_time()
 # CONSOLE / IDE]
 ##########################
 
+# Define folder file path to be saved into
+outpath = "./Bioregions/Output/"
+
 # 2.1.1. Importing intersection attributes as Pandas DataFrames (DF)
 
 # Import MR samples within Bioregions - MR PUBLIC DATA - THIS
 # NEEDS UPDATING EACH TIME NEW MR DATA ARE AVAILABLE
-MR_Samples = pd.read_csv("./Data/MR_All_BioregionsIntersect_c20210730.csv")
+MR_Samples = pd.read_csv("./Bioregions/Data/MR_All_BioregionsIntersect_c20220310.csv")
 # made from arcpy
 
 # Import all data within the presence absence dataset. Need to duplicate
 # Regions 2 and 3 to not lose headers on import - updated from
 #'29042020' version of the presence absence spreadsheet on 05/11/2020
 presence_absence = pd.read_excel(
-    "./Data/Presence absence spreadsheet_Final_JNCC_14072020.xlsx",
+    "./Bioregions/Data/Presence absence spreadsheet_Final_JNCC_14072020.xlsx",
     'Biotope_presence_absence', header=1
     )
 
 # Import template automation evidence spreadsheet as provided by E.Last
 auto_evidence = pd.read_excel(
-    "./Data/Automation_EvidenceFields.xlsx", 'Sheet1')
+    "./Bioregions/Data/Automation_EvidenceFields.xlsx", 'Sheet1')
 
 # Import copy of biotopes database
-Biotopes_DB = pd.read_excel("./Data/Biotope database_Final_29042020.xlsx",
+Biotopes_DB = pd.read_excel("./Bioregions/Data/Biotope database_Final_29042020.xlsx",
                             'Biotope Database')
 
 # Import UKSeaMap2018 data attributes
-UKSM = pd.read_csv("./Data/UKSM18_BioregionsIntersection_Attributes.csv")
+UKSM = pd.read_csv("./Bioregions/Data/UKSM18_BioregionsIntersection_Attributes.csv")
 
 #         Import NBN species spatial data
 NBN_SpeciesSpatial = pd.read_excel(
-    "./Data/NBN_Corrected_Data_Merged_Intersected.xlsx",
+    "./Bioregions/Data/NBN_Corrected_Data_Merged_Intersected.xlsx",
     'NBN_Corrected_Data_Merged_Inter'
     )
 
 # Import NBN species biotope list data
-NBN_SpeciesList = pd.read_excel("./Data/NBN_Species.xlsx", "NBN_Species")
+NBN_SpeciesList = pd.read_excel("./Bioregions/Data/NBN_Species.xlsx", "NBN_Species")
 
 # Import all MPAs within each bioregion
 #MPA_Bioregion = pd.read_excel(
-#    "./Data/Bioregions_MPAsMergeIntersection_Attributes.xlsx",
+#    "./Bioregions/Data/Bioregions_MPAsMergeIntersection_Attributes.xlsx",
 #    'Bioregions_MPAsMergeIntersectio'
 #    )
 # from text mining bit. not there anymore, ask laura if we need it
@@ -1866,8 +1869,6 @@ MR_BiotopesDB_Merge['Result'] = MR_BiotopesDB_Merge.apply(lambda row: auto_decis
 
 # Export MR_BiotopesDB_Merge for audit trail of work
 
-# Define folder file path to be saved into
-outpath = "./Output/"
 # Define file name to save, categorised by date
 filename = "MR_BiotopesDB_Merge_" + (time.strftime("%Y%m%d") + ".xlsx")
 # Run the output DF.to_csv method
@@ -1885,7 +1886,7 @@ MR_BiotopesDB_Merge.to_excel(outpath + filename,  sheet_name='MR_BiotopesDB_Merg
 BiotopesAuto_DF = MR_BiotopesDB_Merge
 
 # Import existing bioregions data to provide inshore/offshore overview
-existing_bioregions2017 = pd.read_excel("./Data/Bioregions_extract_AccessQRY_20200430.xlsx", 'Qry_Bioregional_Gaps')
+existing_bioregions2017 = pd.read_excel("./Bioregions/Data/Bioregions_extract_AccessQRY_20200430.xlsx", 'Qry_Bioregional_Gaps')
 
 # Refine the existing_bioregions DF
 existing_bioregions2017 = existing_bioregions2017[['SubregionName', 'BiotopePresence', 'HabitatCode']]
@@ -1928,8 +1929,6 @@ NewBioExistingBioMerge['UpdatedBiotopePresence'] = NewBioExistingBioMerge.apply(
 
 # Export NewBioExistingBioMerge for audit trail of work
 
-# Define folder file path to be saved into
-outpath = "./Output/"
 # Define file name to save, categorised by date
 filename = "NewBioExistingBioMerge_" + (time.strftime("%Y%m%d") + ".xlsx")
 # Run the output DF.to_csv method
@@ -1948,7 +1947,7 @@ NewBioExtract = NewBioExistingBioMerge[['Bioregion', 'UpdatedBiotopePresence', '
 NewBioExtract.columns = ['SubregionName', 'BiotopePresence', 'HabitatCode']
 
 # Import existing biotopes extract to provide inshore/offshore overview
-OldBioExtract = pd.read_excel("./Data/Bioregions_extract_AccessQRY_20200430.xlsx", 'Qry_Bioregional_Gaps')
+OldBioExtract = pd.read_excel("./Bioregions/Data/Bioregions_extract_AccessQRY_20200430.xlsx", 'Qry_Bioregional_Gaps')
 
 # Refine the existing_bioregions DF to only retain inshore/offshore details and EUNIS code
 OldBioExtract = OldBioExtract[['BiotopePresence', 'HabitatCode']]
@@ -1991,9 +1990,6 @@ UpdatedBioExtract = UpdatedBioExtract.loc[~UpdatedBioExtract['HabitatCode'].isin
 
 ##################################
 
-# Export new bioregions extract for aggregation process
-# Define folder file path to be saved into
-outpath = "./Output/"
 # Define file name to save, categorised by date
 filename = "BioregionsExtract_" + (time.strftime("%Y%m%d") + ".xlsx")
 # Run the output DF.to_csv method

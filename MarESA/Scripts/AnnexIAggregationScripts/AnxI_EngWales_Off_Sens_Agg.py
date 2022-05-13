@@ -30,7 +30,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab, EngWel_Annex1):
+def main(marESA_file, EngWel_Annex1):
     # Test the run time of the function
     start = time.process_time()
     print('Starting the anxI EngWales off sensitivity script...')
@@ -46,6 +46,54 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     #                        marESA_tab, dtype={'EUNIS_Code': str})
     MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
+
+    MarESA.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
+    def fill_missing_maresa_rows(df):
+
+        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
+                    'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
+        pressure_cols = ['NE_Code', 'Pressure']
+        res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
+                'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
+                'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
+        
+        # finding all the unique habitats and pressures
+        df_habs = df[hab_cols].drop_duplicates()
+        df_pres = df[pressure_cols].drop_duplicates()
+
+        # creating all the possible combinations of habitat and pressure
+        df_cross = df_habs.merge(df_pres, how='cross')
+
+        # adds in the blank resistance columns 
+        df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
+
+        # append the blank ones on the end so that drop duplicates keeps
+        # the row with actual data if there is one
+        df_final = df.append(df_cross)
+        df_final.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
+        # blank rows should be filled with unknown to be picked up later
+        df_final[res_cols] = df_final[res_cols].fillna('Unknown')
+
+        return(df_final)
+
+    MarESA = fill_missing_maresa_rows(MarESA)
+
+    def remove_key_rows(df):
+        climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
+                   'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
+                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)', 
+                   'Marine heatwaves (Middle)']
+        bios = ['A5.5111', 'A5.5112', 'A5.3611']
+
+        # There was an issues with these three biotopes being duplicated in
+        # the feb 2022 run so we used this as a hot fix
+        df_cut = pd.concat([df[~df['EUNIS_Code'].isin(bios)], df[~df['Pressure'].isin(climate)]])
+        df_cut.drop_duplicates(inplace=True)
+        return(df_cut)
+    
+    MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -69,8 +117,10 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     # Merge MarESA sensitivity assessments with all Habitats Directive listed Annex 1 habitats and sub-types of
     # relevance
     # Merge MarESA sensitivity assessments with all data within the annex DF on JNCC code
-    maresa_annex_merge = pd.merge(annex1, MarESA, left_on='EUNIS code', right_on='EUNIS_Code',
+    maresa_annex_merge = pd.merge(annex1, MarESA, left_on='JNCC code', right_on='JNCC_Code',
                                   how='outer', indicator=True)
+    # maresa_annex_merge = pd.merge(annex1, MarESA, left_on='EUNIS code', right_on='EUNIS_Code',
+    #                               how='outer', indicator=True)
 
     # Create a subset of the maresa_annex_merge which only contains the annex without MarESA assessments
     annex_only = maresa_annex_merge.loc[maresa_annex_merge['_merge'].isin(['left_only'])]
@@ -82,9 +132,6 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
 
     # Step 1:
     # Assign a full set of pressures with the value 'Unknown' to all annex data which do not have MarESA Assessments
-
-    # Identify all pressures and assign as a list
-    maresa_pressures = list(MarESA['Pressure'].unique())
 
     # Create subset of all unique pressures and NE codes to be used for the append. Achieve this by filtering the MarESA
     # DataFrame to only include the unique pressures from the pressures list.
@@ -114,9 +161,6 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     PressuresCodes.loc[:, 'JNCC_Code'] = np.nan
     PressuresCodes.loc[:, 'EUNIS level'] = np.nan
 
-    # Create template DF
-    Template_DF = PressuresCodes
-
     # Create function to complete cross join / create cartesian product between two target DF
 
     def df_crossjoin(df1, df2):
@@ -128,10 +172,15 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
 
         :return cross join of df1 and df2
         """
-        df1.loc[:, '_tmpkey'] = 1
-        df2.loc[:, '_tmpkey'] = 1
+        try:
+            df1.loc[:, '_tmpkey'] = 1
+            df2.loc[:, '_tmpkey'] = 1
+        except:
+            return(pd.DataFrame(columns=['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']))
 
         res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
+
         res.index = pd.MultiIndex.from_product((df1.index, df2.index))
 
         df1.drop('_tmpkey', axis=1, inplace=True)
@@ -140,7 +189,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
         return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
-    annex_unknown_template_cjoin = df_crossjoin(annex_only, Template_DF)
+    annex_unknown_template_cjoin = df_crossjoin(annex_only, PressuresCodes)
 
     # Rename columns to match MarESA data
     annex_unknown_template_cjoin.rename(
@@ -192,7 +241,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
         'SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
     ]]
-
+    
     ####################################################################################################################
 
     # Remove any unwanted trailing whitespace from all elements to be combined in together() function
@@ -214,7 +263,6 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     # Run the together() function to combine Feature/SubFeature data into a single 'SubregionFeatureSubFeature' column
     # to be aggregated
     annex_maresa_unknowns['SubregionFeatureSubFeature'] = annex_maresa_unknowns.apply(lambda row: together(row), axis=1)
-
     # Group all L6 data by Sensitivity values
     maresa_annex_agg = annex_maresa_unknowns.groupby([
         'Pressure', 'SubregionFeatureSubFeature'
@@ -272,7 +320,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     # assessment score
     for eachCol in colNames:
         maresa_annex_agg[eachCol] = maresa_annex_agg[eachCol].apply(lambda x: replacer(x, eachCol))
-
+    
     ####################################################################################################################
 
     # Function Title: final_sensitivity
@@ -520,6 +568,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
     outpath = "./MarESA/Output/"
     # Define file name to save, categorised by data
     filename = "AnxI_EngWales_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
+    #filename = "AnxI_Scot_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) + ".csv")
     # Run the output DF.to_csv method
     maresa_annex_agg.to_csv(outpath + filename, sep=',')
 
@@ -533,3 +582,7 @@ def main(marESA_file, marESA_tab, EngWel_Annex1):
            '\n' + 'This has been saved as a time-stamped output at ' +
            'the following filepath: ' + str(outpath) + '\n\n')
 
+if __name__ == "__main__":
+
+    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'English_Welsh_Offshore_AnnexI_2022-03-16.csv')
+    #main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv')

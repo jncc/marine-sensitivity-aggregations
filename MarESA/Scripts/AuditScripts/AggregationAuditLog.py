@@ -44,7 +44,7 @@ def main(audit = True, send = False):
 
     print('Audit script starting...\n')
 
-    output_files = [f for f in listdir('./Output/') if isfile(join('./Output/', f))]
+    output_files = [f for f in listdir('./MarESA/Output/') if isfile(join('./MarESA/Output/', f))]
 
     # Create empty list to store the file names for the most recently
     # created MarESA output files
@@ -70,7 +70,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'OffshoreSensAgg' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -103,7 +103,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'OffshoreResAgg' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -135,7 +135,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'OffshoreResilAgg' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -167,7 +167,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'DeepSeabed_Sens_Agg' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -199,7 +199,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'DeepSeabed_Resil_Agg' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -231,7 +231,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'MCZ_Wales_In_BSH' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -264,7 +264,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'BH3_OffSens' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -301,7 +301,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'MCZ_Off_FOCI_Sens' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -334,7 +334,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'MCZ_Off_FOCI_Resil' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -367,7 +367,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'MCZ_Wales_In_FOCI' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -404,7 +404,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'AnxI_EngWales_Off_Sens' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -437,7 +437,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'AnxI_EngWales_Off_Resil' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -470,7 +470,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'AnxI_Scot_In&Off_Sens' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -489,6 +489,7 @@ def main(audit = True, send = False):
         files_resilience.append('Not Applicable')
 
         if send:
+            #destination_folder = r"\\jncc-corpfile\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\AnxI_Scot_In&Off\AnxI_Sens_Agg\\"
             destination_folder = r"\\jncc-corpfile\JNCC Corporate Data\Marine\Evidence\PressuresImpacts\6. Sensitivity\SA's Mapping\Sensitivity aggregations\Feature_level\AnxI_Scot_In&Off\AnxI_Sens_Agg\\"
             copyfile(maresaSensP[0], destination_folder + fn)
             print(maresaSensP[0] + ' sent to ' + destination_folder)
@@ -503,7 +504,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'AnxI_Scot_Off_Sens' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -536,7 +537,7 @@ def main(audit = True, send = False):
         # Finding all the files with the string in them
         maresaSens = [f for f in output_files if 'PMF_Off_Sens' in f]
         # Adding the file paths to the file names so they can be found
-        maresaSensP = [os.path.join('./Output/', f) for f in maresaSens]
+        maresaSensP = [os.path.join('./MarESA/Output/', f) for f in maresaSens]
         # Ordering the foudn file paths by modification date to get the
         # most up-to-date file just created (creation date is
         # operating system specific so hasn't been used)
@@ -583,7 +584,7 @@ def main(audit = True, send = False):
     if audit:
         # Load in the existing log file to be updated with the outputs to
         # store metadata
-        audit = pd.read_csv("MarESAAggregation_OutputLog_AuditTrailOnly.csv")
+        audit = pd.read_csv("./MarESA/MarESAAggregation_OutputLog_AuditTrailOnly.csv")
 
         # Append the newly created files back into the existing audit DF
         updated_audit = audit.append(new_files)
@@ -596,10 +597,14 @@ def main(audit = True, send = False):
 
         # Export the audit trail document back to the original filepath
         # once updated
-        updated_audit.to_csv('MarESAAggregation_OutputLog_AuditTrailOnly.csv',
+        updated_audit.to_csv('./MarESA/MarESAAggregation_OutputLog_AuditTrailOnly.csv',
                              sep=',',
                              index=False)
 
     # Create print statement to indicate how long the process took and
     # round value to 1 decimal place.
     print('\n...The audit script has finished running.')
+
+if __name__ == "__main__":
+
+    main(audit = False, send = True)

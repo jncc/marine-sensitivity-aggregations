@@ -10,8 +10,10 @@ library(stringr)
 library(writexl)
 library(tidyr)
 
-inpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/Input datasets/" #where input data is stored
-outpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/MCZ_Off/Input dataset/" #where to save output
+# inpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/Input datasets/" #where input data is stored
+# outpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/MCZ_Off/Input dataset/" #where to save output
+inpath<-"../Data/" #where input data is stored
+outpath<-"../Data/" #where to save output
 
 ### create list of column names to keep ###
 FOCI_cols<-c("EUNIS code 2007", "EUNIS name 2007", "JNCC 15.03 code", "JNCC 15.03 name", "EUNIS level", "MCZ HOCI")
@@ -33,7 +35,7 @@ JNCC_EUNIS<-UK_habitats %>%
   filter(!is.na(`JNCC code`))
 
 
-Bioregions_extract<-read_excel(path=paste0(inpath, "BioregionsExtract_20210802.xlsx")) %>%
+Bioregions_extract<-read_excel(path=paste0(inpath, "BioregionsExtract_20220310.xlsx")) %>%
   select("SubregionName", "BiotopePresence", "HabitatCode") %>%
   filter(`BiotopePresence` %in% Yes_Poss) %>%
   filter(`SubregionName` %in% Bioregions) %>%

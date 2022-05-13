@@ -11,8 +11,10 @@ library(writexl)
 library(tidyr)
 
 
-inpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/Input datasets/"
-outpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/AnxI_EngWales_Off/Input dataset/"
+# inpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/Input datasets/"
+# outpath<-"//jncc-corpfile/JNCC Corporate Data/Marine/Evidence/PressuresImpacts/6. Sensitivity/SA's Mapping/Sensitivity aggregations/Feature_level/AnxI_EngWales_Off/Input dataset/"
+inpath<-"../Data/"
+outpath<-"../Data/"
 
 # read in correlation table for UK habitats #
 UK_habitats<-read_excel(path=paste0(inpath, "201801_EUNIS07and04_to_JNCC15.03andListed_CorrelationTable.xlsx")) %>%
@@ -31,7 +33,7 @@ JNCC_EUNIS<-UK_habitats %>%
   filter(!is.na(`JNCC code`))
 
 
-Bioregions_extract<-read_excel(path=paste0(inpath, "BioregionsExtract_20210802.xlsx")) %>%
+Bioregions_extract<-read_excel(path=paste0(inpath, "BioregionsExtract_20220310.xlsx")) %>%
   select("SubregionName", "BiotopePresence", "HabitatCode") %>%
   filter(`BiotopePresence` %in% Yes_Poss) %>%
   filter(`SubregionName` %in% Bioregions) %>%

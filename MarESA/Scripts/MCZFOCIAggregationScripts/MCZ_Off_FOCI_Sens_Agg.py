@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab, EnglishOffshore):
+def main(marESA_file, EnglishOffshore):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ offshore FOCI sensitivity script started...')
@@ -51,6 +51,52 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     #                        marESA_tab, dtype={'EUNIS_Code': str})
     MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
+
+    def fill_missing_maresa_rows(df):
+
+        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
+                    'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
+        pressure_cols = ['NE_Code', 'Pressure']
+        res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
+                'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
+                'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
+        
+        # finding all the unique habitats and pressures
+        df_habs = df[hab_cols].drop_duplicates()
+        df_pres = df[pressure_cols].drop_duplicates()
+
+        # creating all the possible combinations of habitat and pressure
+        df_cross = df_habs.merge(df_pres, how='cross')
+
+        # adds in the blank resistance columns 
+        df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
+
+        # append the blank ones on the end so that drop duplicates keeps
+        # the row with actual data if there is one
+        df_final = df.append(df_cross)
+        df_final.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
+        # blank rows should be filled with unknown to be picked up later
+        df_final[res_cols] = df_final[res_cols].fillna('Unknown')
+
+        return(df_final)
+
+    MarESA = fill_missing_maresa_rows(MarESA)
+
+    def remove_key_rows(df):
+        climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
+                   'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
+                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)', 
+                   'Marine heatwaves (Middle)']
+        bios = ['A5.5111', 'A5.5112', 'A5.3611']
+
+        # There was an issues with these three biotopes being duplicated in
+        # the feb 2022 run so we used this as a hot fix
+        df_cut = pd.concat([df[~df['EUNIS_Code'].isin(bios)], df[~df['Pressure'].isin(climate)]])
+        df_cut.drop_duplicates(inplace=True)
+        return(df_cut)
+    
+    MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -87,9 +133,6 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     # Step 1:
     # Assign a full set of pressures with the value 'Unknown' to all foci data which do not have MarESA Assessments
 
-    # Identify all pressures and assign as a list
-    maresa_pressures = list(MarESA['Pressure'].unique())
-
     # Create subset of all unique pressures and NE codes to be used for the append. Achieve this by filtering the MarESA
     # DataFrame to only include the unique pressures from the pressures list.
     PressuresCodes = MarESA.drop_duplicates(subset=['NE_Code', 'Pressure'], inplace=False)
@@ -105,7 +148,8 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     PressuresCodes.loc[:, 'Resilience'] = 'Unknown'
     PressuresCodes.loc[:, 'ResilienceQoE'] = 'Unknown'
     PressuresCodes.loc[:, 'ResilienceAoE'] = 'Unknown'
-    PressuresCodes.loc[:, 'resilienceDoE'] = 'Unknown'
+    #PressuresCodes.loc[:, 'resilienceDoE'] = 'Unknown'
+    PressuresCodes.loc[:, 'ResilienceDoE'] = 'Unknown'
     PressuresCodes.loc[:, 'Sensitivity'] = 'Unknown'
     PressuresCodes.loc[:, 'SensitivityQoE'] = 'Unknown'
     PressuresCodes.loc[:, 'SensitivityAoE'] = 'Unknown'
@@ -518,3 +562,7 @@ def main(marESA_file, marESA_tab, EnglishOffshore):
     print('...The ' + str(filename) + ' script took ' + str(round(elapsed / 60, 1)) + ' minutes to run and complete.'
           + '\n' + 'This has been saved as a time-stamped output at the following filepath: ' + str(outpath) + '\n\n')
 
+
+if __name__ == "__main__":
+
+    main('habitatspressures_20220310.csv', 'English_Offshore_FOCI&BSH_2022-03-16.csv')

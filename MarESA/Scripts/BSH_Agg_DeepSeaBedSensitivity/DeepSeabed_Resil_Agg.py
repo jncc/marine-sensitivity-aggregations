@@ -29,14 +29,17 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, marESA_tab):
+def main(marESA_file, EnglishOffshore):
     # Test the run time of the function
     start = time.process_time()
     print('Deep sea resilience aggregation script started...')
 
     # Load in all BSH data from MS xlsx document
-    bsh = pd.read_excel("./Data/DeepSea_BSH.xlsx",
-        'BSH_Biotope_PresenceAbsence')
+    bsh = pd.read_csv("./MarESA/Data/" + EnglishOffshore)
+    # Filter by presence of Deep-sea bed as BSH
+    bsh = bsh[bsh["BSH"] == "Deep-sea bed"]
+    bsh.drop('FOCI', axis=1, inplace=True)
+    bsh.drop_duplicates(inplace=True)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -44,8 +47,39 @@ def main(marESA_file, marESA_tab):
     # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
     # MarESA = pd.read_excel("./Data/" + marESA_file,
     #                        marESA_tab, dtype={'EUNIS_Code': str})
-    MarESA = pd.read_csv("./Data/" + marESA_file,
+    MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
+
+    def fill_missing_maresa_rows(df):
+
+        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
+                    'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
+        pressure_cols = ['NE_Code', 'Pressure']
+        res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
+                'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
+                'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
+        
+        # finding all the unique habitats and pressures
+        df_habs = df[hab_cols].drop_duplicates()
+        df_pres = df[pressure_cols].drop_duplicates()
+
+        # creating all the possible combinations of habitat and pressure
+        df_cross = df_habs.merge(df_pres, how='cross')
+
+        # adds in the blank resistance columns 
+        df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
+
+        # append the blank ones on the end so that drop duplicates keeps
+        # the row with actual data if there is one
+        df_final = df.append(df_cross)
+        df_final.drop_duplicates(['habitatID', 'Pressure'], inplace=True)
+
+        # blank rows should be filled with unknown to be picked up later
+        df_final[res_cols] = df_final[res_cols].fillna('Unknown')
+
+        return(df_final)
+
+    MarESA = fill_missing_maresa_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -470,7 +504,7 @@ def main(marESA_file, marESA_tab):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./Output/"
+    outpath = "./MarESA/Output/"
     # Define file name to save, categorised by date
     filename = "DeepSeabed_Resil_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
