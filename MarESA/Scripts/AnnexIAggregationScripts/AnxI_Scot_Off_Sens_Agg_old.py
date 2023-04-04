@@ -21,6 +21,7 @@
 # Import libraries used within the script, assign a working directory and import data
 
 # Import all Python libraries required or data manipulation
+import os
 import time
 import numpy as np
 import pandas as pd
@@ -583,6 +584,6 @@ def main(marESA_file, Scot_Annex1):
 
 
 if __name__ == "__main__":
-
+    os.chdir('C:/Users/Ollie.Grint/Documents')
     main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv')
 

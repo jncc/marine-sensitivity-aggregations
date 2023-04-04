@@ -606,5 +606,5 @@ def main(audit = True, send = False):
     print('\n...The audit script has finished running.')
 
 if __name__ == "__main__":
-
+    os.chdir('C:/Users/Ollie.Grint/Documents')
     main(audit = False, send = True)

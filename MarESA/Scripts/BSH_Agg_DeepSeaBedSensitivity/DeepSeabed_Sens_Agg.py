@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, EnglishOffshore):
+def main(marESA_file, EnglishOffshore,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('Deep sea sensitivity aggregation script started...')
@@ -93,7 +93,7 @@ def main(marESA_file, EnglishOffshore):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -494,7 +494,7 @@ def main(marESA_file, EnglishOffshore):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "DeepSeabed_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
@@ -508,5 +508,5 @@ def main(marESA_file, EnglishOffshore):
           + '\n' + 'This has been saved as a time-stamped output at the following filepath: ' + str(outpath) + '\n\n')
 
 if __name__ == "__main__":
-
-    main('habitatspressures_20220310.csv', 'English_Offshore_FOCI&BSH_2022-03-16.csv')
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'English_Offshore_FOCI&BSH_2022-03-16.csv')

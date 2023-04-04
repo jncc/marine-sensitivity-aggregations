@@ -89,7 +89,7 @@ def main(marESA_file, EngWel_Annex1):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name

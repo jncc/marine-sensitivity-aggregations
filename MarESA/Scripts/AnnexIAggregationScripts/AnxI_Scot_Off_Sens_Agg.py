@@ -21,6 +21,7 @@
 # Import libraries used within the script, assign a working directory and import data
 
 # Import all Python libraries required or data manipulation
+import os
 import time
 import numpy as np
 import pandas as pd
@@ -30,13 +31,13 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, EngWel_Annex1):
+def main(marESA_file, Scot_Annex1,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('Starting the anxI EngWales off sensitivity script...')
 
     # Load all Annex 1 sub-type data into Pandas DF from MS Office .xlsx docuent
-    annex1 = pd.read_csv("./MarESA/Data/" + EngWel_Annex1)
+    annex1 = pd.read_csv("./MarESA/Data/" + Scot_Annex1)
 
     # Import all data within the MarESA extract as Pandas DataFrame
     # NOTE: This must be updated each time a new MarESA Extract is released
@@ -93,7 +94,7 @@ def main(marESA_file, EngWel_Annex1):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -118,9 +119,8 @@ def main(marESA_file, EngWel_Annex1):
     # relevance
     # Merge MarESA sensitivity assessments with all data within the annex DF on JNCC code
     maresa_annex_merge = pd.merge(annex1, MarESA, left_on='JNCC code', right_on='JNCC_Code',
-                                  how='outer', indicator=True)
-    # maresa_annex_merge = pd.merge(annex1, MarESA, left_on='EUNIS code', right_on='EUNIS_Code',
-    #                               how='outer', indicator=True)
+                                   how='outer', indicator=True)
+
 
     # Create a subset of the maresa_annex_merge which only contains the annex without MarESA assessments
     annex_only = maresa_annex_merge.loc[maresa_annex_merge['_merge'].isin(['left_only'])]
@@ -176,7 +176,7 @@ def main(marESA_file, EngWel_Annex1):
             df1.loc[:, '_tmpkey'] = 1
             df2.loc[:, '_tmpkey'] = 1
         except:
-            return(pd.DataFrame(columns=['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+            return(pd.DataFrame(columns=['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
          'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']))
 
         res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
@@ -199,13 +199,13 @@ def main(marESA_file, EngWel_Annex1):
 
     # Restructure the crossjoined DF to only retain columns of interest
     annex_unknown = annex_unknown_template_cjoin[
-        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
          'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
     ]
 
     # Refine the annex_maresa dF to match the columns of the newly created annex_unknown template
     annex_maresa = annex_maresa[
-        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+        ['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
          'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']
     ]
 
@@ -238,7 +238,7 @@ def main(marESA_file, EngWel_Annex1):
 
     # Subset the annex_maresa_unknowns DF to only retain the columns of interest
     annex_maresa_unknowns = annex_maresa_unknowns[[
-        'SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+        'SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
         'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity'
     ]]
     
@@ -247,7 +247,7 @@ def main(marESA_file, EngWel_Annex1):
     # Remove any unwanted trailing whitespace from all elements to be combined in together() function
     annex_maresa_unknowns['SubregionName'] = annex_maresa_unknowns['SubregionName'].str.strip()
     annex_maresa_unknowns['Annex I habitat'] = annex_maresa_unknowns['Annex I habitat'].str.strip()
-    annex_maresa_unknowns['Annex I sub-feature'] = annex_maresa_unknowns['Annex I sub-feature'].str.strip()
+    annex_maresa_unknowns['Annex I sub-type'] = annex_maresa_unknowns['Annex I sub-type'].str.strip()
 
     # Create function which takes the Annex I Feature/SubFeature columns, and combines both entries into a single column
     # This enables the data to be grouped and aggregated using the .groupby() function (does not support multiple
@@ -256,7 +256,7 @@ def main(marESA_file, EngWel_Annex1):
         # Pull in data from both columns of interest
         subb_r = row['SubregionName']
         ann1 = row['Annex I habitat']
-        sub_f = row['Annex I sub-feature']
+        sub_f = row['Annex I sub-type']
         # Return a string of both individual targets combined by a ' - ' symbol
         return str(subb_r) + ' - ' + str(str(ann1) + ' - ' + str(sub_f))
 
@@ -518,7 +518,7 @@ def main(marESA_file, EngWel_Annex1):
     ####################################################################################################################
 
     # Split the SubregionFeatureSubFeature column back into the individual columns once aggregated by unique combination
-    # of Feature and Sub-Feature.
+    # of Feature and sub-type.
 
     def str_split(row, str_interval):
         # Import the target column into the local scope of the function
@@ -565,7 +565,7 @@ def main(marESA_file, EngWel_Annex1):
     # Export data
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by data
     filename = "AnxI_Scot_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) + ".csv")
     # Run the output DF.to_csv method
@@ -582,5 +582,18 @@ def main(marESA_file, EngWel_Annex1):
            'the following filepath: ' + str(outpath) + '\n\n')
 
 if __name__ == "__main__":
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2023-02-07.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv','Annex 1 EUNIS join/')
 
-    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv')
+# EnglishOffshore = 'English_Offshore_FOCI&BSH_2022-03-16.csv'
+# WelshBSH = 'Welsh_Inshore_BSH_2022-03-16.csv'
+# WelshFOCI = 'Welsh_Inshore_FOCI_2022-03-16.csv'
+# EngWel_Annex1 = 'English_Welsh_Offshore_AnnexI_2022-03-16.csv'
+# Scot_Annex1 = 'Scottish_Offshore_AnnexI_2022-05-06.csv'
+# Scot_PMF = 'Scottish_Offshore_PMF_2022-04-29.csv'
+# marESA_file = 'MarESA-Data-Extract-habitatspressures_2022-04-20.csv'
+#
+# test_reef=maresa_annex_agg[maresa_annex_agg['Annex I Habitat']=='Reefs']
+#     filename = "AnxI_Scot_Reef_Example.csv"
+#     # Run the output DF.to_csv method
+#     test_reef.to_csv(outpath + filename, sep=',')

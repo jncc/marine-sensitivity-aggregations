@@ -29,7 +29,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, WelshBSH):
+def main(marESA_file, WelshBSH,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ Wales Inshore aggregation script started...')
@@ -90,7 +90,7 @@ def main(marESA_file, WelshBSH):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -119,7 +119,6 @@ def main(marESA_file, WelshBSH):
 
     # Create a subset of the maresa_bsh_merge which only contains the bsh without MarESA assessments
     bsh_only = maresa_bsh_merge.loc[maresa_bsh_merge['_merge'].isin(['left_only'])]
-
     # Create a subset of the maresa_bsh_merge which only contains the bsh with MarESA assessments
     bsh_maresa = maresa_bsh_merge.loc[maresa_bsh_merge['_merge'].isin(['both'])]
 
@@ -185,26 +184,28 @@ def main(marESA_file, WelshBSH):
         return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
-    bsh_unknown_template_cjoin = df_crossjoin(bsh_only, Template_DF)
+    if len(bsh_only) >= 1:
+        bsh_unknown_template_cjoin = df_crossjoin(bsh_only, Template_DF)
+        # Rename columns to match MarESA data
+        bsh_unknown_template_cjoin.rename(
+            columns={
+                'Pressure_y': 'Pressure', 'Resistance_y': 'Resistance',
+                'Resilience_y': 'Resilience', 'Sensitivity_y': 'Sensitivity', 'JNCC_Code_y': 'JNCC_Code'}, inplace=True)
 
-    # Rename columns to match MarESA data
-    bsh_unknown_template_cjoin.rename(
-        columns={
-            'Pressure_y': 'Pressure', 'Resistance_y': 'Resistance',
-            'Resilience_y': 'Resilience', 'Sensitivity_y': 'Sensitivity', 'JNCC_Code_y': 'JNCC_Code'}, inplace=True)
+        # Restructure the crossjoined DF to only retain columns of interest
+        bsh_unknown = bsh_unknown_template_cjoin[
+            ['BSH', 'Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ]
 
-    # Restructure the crossjoined DF to only retain columns of interest
-    bsh_unknown = bsh_unknown_template_cjoin[
-        ['BSH', 'Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
-    ]
+        # Refine the bsh_maresa dF to match the columns of the newly created bsh_unknown template
+        bsh_maresa = bsh_maresa[
+            ['BSH', 'Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ]
 
-    # Refine the bsh_maresa dF to match the columns of the newly created bsh_unknown template
-    bsh_maresa = bsh_maresa[
-        ['BSH', 'Depth', 'JNCC code', 'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
-    ]
-
-    # Append the bsh_unknown into the refined bsh_maresa DF
-    bsh_maresa_unknowns = bsh_maresa.append(bsh_unknown, ignore_index=True)
+        # Append the bsh_unknown into the refined bsh_maresa DF
+        bsh_maresa_unknowns = bsh_maresa.append(bsh_unknown, ignore_index=True)
+    else:
+        bsh_maresa_unknowns=bsh_maresa
 
     #############################################################
 
@@ -539,7 +540,7 @@ def main(marESA_file, WelshBSH):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "MCZ_Wales_In_BSH_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
@@ -552,3 +553,6 @@ def main(marESA_file, WelshBSH):
     print('...The ' + str(filename) + ' script took ' + str(round(elapsed / 60, 1)) + ' minutes to run and complete.'
           + '\n' + 'This has been saved as a time-stamped output at the following filepath: ' + str(outpath) + '\n\n')
 
+if __name__ == "__main__":
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2023-02-07.csv', 'Welsh_Inshore_BSH_2022-03-16.csv','Welsh BSH rerun/')

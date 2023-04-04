@@ -516,3 +516,7 @@ def main(marESA_file, EnglishOffshore):
     # Create print statement to indicate how long the process took and round value to 1 decimal place.
     print('...The ' + str(filename) + ' script took ' + str(round(elapsed / 60, 1)) + ' minutes to run and complete.'
           + '\n' + 'This has been saved as a time-stamped output at the following filepath: ' + str(outpath) + '\n\n')
+
+if __name__ == "__main__":
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'English_Offshore_FOCI&BSH_2022-03-16.csv')

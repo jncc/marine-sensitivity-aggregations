@@ -21,6 +21,7 @@
 # Import libraries used within the script, assign a working directory and import data
 
 # Import all Python libraries required or data manipulation
+import os
 import time
 import numpy as np
 import pandas as pd
@@ -30,7 +31,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, EngWel_Annex1):
+def main(marESA_file, EngWel_Annex1,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('Starting the anxI EngWales off sensitivity script...')
@@ -93,7 +94,7 @@ def main(marESA_file, EngWel_Annex1):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -118,9 +119,8 @@ def main(marESA_file, EngWel_Annex1):
     # relevance
     # Merge MarESA sensitivity assessments with all data within the annex DF on JNCC code
     maresa_annex_merge = pd.merge(annex1, MarESA, left_on='JNCC code', right_on='JNCC_Code',
-                                  how='outer', indicator=True)
-    # maresa_annex_merge = pd.merge(annex1, MarESA, left_on='EUNIS code', right_on='EUNIS_Code',
-    #                               how='outer', indicator=True)
+                                 how='outer', indicator=True)
+
 
     # Create a subset of the maresa_annex_merge which only contains the annex without MarESA assessments
     annex_only = maresa_annex_merge.loc[maresa_annex_merge['_merge'].isin(['left_only'])]
@@ -176,7 +176,7 @@ def main(marESA_file, EngWel_Annex1):
             df1.loc[:, '_tmpkey'] = 1
             df2.loc[:, '_tmpkey'] = 1
         except:
-            return(pd.DataFrame(columns=['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-feature', 'Classification level', 'EUNIS code',
+            return(pd.DataFrame(columns=['SubregionName', 'JNCC_Code', 'Annex I habitat', 'Annex I sub-type', 'Classification level', 'EUNIS code',
          'EUNIS name', 'JNCC code', 'JNCC name', 'Pressure', 'Resilience', 'Resistance', 'Sensitivity']))
 
         res = pd.merge(df1, df2, on='_tmpkey').drop('_tmpkey', axis=1)
@@ -565,7 +565,7 @@ def main(marESA_file, EngWel_Annex1):
     # Export data
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by data
     filename = "AnxI_EngWales_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     #filename = "AnxI_Scot_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) + ".csv")
@@ -583,6 +583,7 @@ def main(marESA_file, EngWel_Annex1):
            'the following filepath: ' + str(outpath) + '\n\n')
 
 if __name__ == "__main__":
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2023-02-07.csv', 'English_Welsh_Offshore_AnnexI_2022-03-16.csv','Annex 1 EUNIS join/')
 
-    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'English_Welsh_Offshore_AnnexI_2022-03-16.csv')
-    #main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv')
+#main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'Scottish_Offshore_AnnexI_2022-05-06.csv')

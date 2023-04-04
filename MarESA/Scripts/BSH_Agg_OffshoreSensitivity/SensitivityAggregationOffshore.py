@@ -33,7 +33,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, bioregions_ext):
+def main(marESA_file, bioregions_ext,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('Offshore sensitivity aggregation script started...')
@@ -60,15 +60,18 @@ def main(marESA_file, bioregions_ext):
     MarESA = pd.read_csv("./MarESA/Data/" + marESA_file,
                            dtype={'EUNIS_Code': str})
 
+    # OG 07/02/2023 Remove temporary EUNIS Codes as these are duplicates of existing EUNIS 2008 codes.
+    MarESA = MarESA[~MarESA['EUNIS_Code'].str.contains('TMP', na = False)]
+
     def fill_missing_maresa_rows(df):
 
-        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name', 
+        hab_cols = ['habitatID', 'JNCC_Code', 'JNCC_Name', 'EUNIS_Code', 'EUNIS_Name',
                     'Biological_zone', 'Zone', 'habitatInformationReviewDate', 'url']
         pressure_cols = ['NE_Code', 'Pressure']
         res_cols = ['Resistance', 'ResistanceQoE', 'ResistanceAoE', 'ResistanceDoE',
                 'Resilience', 'ResilienceQoE', 'ResilienceAoE', 'ResilienceDoE',
                 'Sensitivity', 'SensitivityQoE', 'SensitivityAoE', 'SensitivityDoE']
-        
+
         # finding all the unique habitats and pressures
         df_habs = df[hab_cols].drop_duplicates()
         df_pres = df[pressure_cols].drop_duplicates()
@@ -76,7 +79,7 @@ def main(marESA_file, bioregions_ext):
         # creating all the possible combinations of habitat and pressure
         df_cross = df_habs.merge(df_pres, how='cross')
 
-        # adds in the blank resistance columns 
+        # adds in the blank resistance columns
         df_cross = df_cross.reindex(columns=hab_cols+pressure_cols+res_cols)
 
         # append the blank ones on the end so that drop duplicates keeps
@@ -94,7 +97,7 @@ def main(marESA_file, bioregions_ext):
     def remove_key_rows(df):
         climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
                    'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
-                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)', 
+                   'Sea level rise (High)', 'Sea level rise (Middle)', 'Marine heatwaves (High)',
                    'Marine heatwaves (Middle)']
         bios = ['A5.5111', 'A5.5112', 'A5.3611']
 
@@ -103,8 +106,6 @@ def main(marESA_file, bioregions_ext):
         df_cut = pd.concat([df[~df['EUNIS_Code'].isin(bios)], df[~df['Pressure'].isin(climate)]])
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
-    
-    MarESA = remove_key_rows(MarESA)
 
     # Subset data set to only comprise values where the listed biotopes
     # value is not recorded as False or 'nan'
@@ -575,7 +576,18 @@ def main(marESA_file, bioregions_ext):
             if 'Unknown' in un:
                 unk = 'Not Applicable'
                 value.append(unk)
-        s = ', '.join(set(value))
+        value2=[]
+        value=set(value)
+        order=['H','M','L','NS','NR']
+        if 'Not Applicable' in value:
+            value2=value.copy()
+        else:
+            for i in order:
+                for x in value:
+                    a=x[:x.index("(")]
+                    if a ==i:
+                        value2.append(x)
+        s = ', '.join(value2)
         return str(s)
 
     # Function Title: combine_unassessedcounts
@@ -756,11 +768,11 @@ def main(marESA_file, bioregions_ext):
 
     # Reset columns within L6_processed DataFrame
     L6_processed.columns = ['Level_6', 'Pressure', 'SubregionName', 'Sensitivity']
-    
+
     # Apply the counter() function to the DataFrame to count the occurrence of all assessment values
     L6_processed[['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed',
                   'Unknown']] = L6_processed.apply(lambda df: pd.Series(counter(df['Sensitivity'])), axis=1)
-    
+
     # Duplicate all count values and assign to new columns to be replaced by string values later
     L6_processed['Count_High'] = L6_processed['High']
     L6_processed['Count_Medium'] = L6_processed['Medium']
@@ -770,7 +782,7 @@ def main(marESA_file, bioregions_ext):
     L6_processed['Count_NoEvidence'] = L6_processed['No evidence']
     L6_processed['Count_NotAssessed'] = L6_processed['Not assessed']
     L6_processed['Count_Unknown'] = L6_processed['Unknown']
-    
+
     # Create colNames list for use with replacer() function
     colNames = ['High', 'Medium', 'Low', 'Not sensitive', 'Not relevant', 'No evidence', 'Not assessed', 'Unknown']
 
@@ -786,7 +798,7 @@ def main(marESA_file, bioregions_ext):
 
     # Use lambda function to apply create_sensitivity() function to each row within the DataFrame
     L6_processed['L6_Sensitivity'] = L6_processed.apply(lambda df: create_sensitivity(df), axis=1)
-    
+
 
     # Use lambda function to apply final_sensitivity() function to each row within the DataFrame
     L6_processed['L6_FinalSensitivity'] = L6_processed.apply(lambda df: final_sensitivity(df), axis=1)
@@ -815,9 +827,9 @@ def main(marESA_file, bioregions_ext):
     L6_processed = L6_processed[L6_processed['Level_6'] != 'A5.7112']
 
     ####################################################################################################################
-    
+
     ############# I AM HERE ##############
-    
+
     # Creating an aggregated export
 
     # Create DataFrame for master DataFrame at end of script
@@ -831,7 +843,7 @@ def main(marESA_file, bioregions_ext):
 
     # The following body of code begins the initial steps of the aggregation process from level 6 to level 5
 
-    # Group data by Level_5, Pressure, SubregionName and apply sensitivity values to list using lambdas function and
+    # Group data by Level_5, Pressure, SubregionName and apply resistance values to list using lambdas function and
     # .apply() method
     aggregated_L6_to_L5 = L6_processed.groupby(['Level_5', 'Pressure', 'SubregionName']
                                                )['Sensitivity'].apply(lambda x: ', '.join(x))
@@ -849,21 +861,102 @@ def main(marESA_file, bioregions_ext):
     original_L5_data = pd.DataFrame(bioreg_maresa_merge.loc[bioreg_maresa_merge['EUNIS_Level'].isin(['5'])])
 
     # Assign data differences to new object oriented variable using outer merge between data frames
-    assessed_L5L6_merge = pd.merge(original_L6_data, original_L5_data, how='outer', on=['Level_5', 'Pressure'],
+    assessed_L5L6_merge = pd.merge(original_L6_data, original_L5_data, how='outer', on=['Level_5', 'Pressure','SubregionName'],
                                    indicator=True)
 
     # Create object for L5 where there is no L6 - required for new edits added 27/02/2020
-    assessed_L5_without_L6 = pd.DataFrame(assessed_L5L6_merge[assessed_L5L6_merge['_merge'] == 'right_only'])
+    assessed_L5_without_L6 = pd.DataFrame(assessed_L5L6_merge[assessed_L5L6_merge['Resistance_x'].isna()])
+    assessed_L5_without_L6 = assessed_L5_without_L6[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity_y']]
+    assessed_L5_without_L6.columns=['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']
 
-    # Refine to create a list of the unique biotopes which do not have any child L6 data
-    assessed_L5_without_L6 = assessed_L5_without_L6['EUNIS_Code_y'].unique()
 
-    # Subset  L5 original data to only retain data where there is no L6 child biotope
+    # Subset L5 original data to only retain data where there is no L6 child biotope
     # Create a list of the original L5 data which do not have associated child biotopes
-    original_L5_without_L6_DF = original_L5_data.loc[original_L5_data['EUNIS_Code'].isin(assessed_L5_without_L6)]
+    original_L5_without_L6_DF = pd.merge(original_L5_data, assessed_L5_without_L6, how='outer', on=['Level_5', 'Pressure','SubregionName'],indicator=True)
+    original_L5_without_L6_DF = pd.DataFrame(original_L5_without_L6_DF[original_L5_without_L6_DF['_merge'] == 'both'])
+    original_L5_without_L6_DF = original_L5_without_L6_DF[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity_y']]
+    original_L5_without_L6_DF.columns=['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']
 
+
+    # OG Changes 09/22 to allow for climate change pressures (if L6 unknown but L5 known then use L5 at L5)
+    # create a new dataframe from which we will work out which L6 have all unknown values
+    L6_Unknowns_Processing = L6_processed
+
+    L6_Unknowns_Processing = L6_Unknowns_Processing.groupby(['Level_5', 'Pressure', 'SubregionName']
+                                                            )['Sensitivity'].apply(lambda x: ', '.join(x))
+
+    # Convert the Pandas Series Object into a DataFrame to be manipulated later in the script
+    L6_Unknowns_Processing = pd.DataFrame(L6_Unknowns_Processing)
+
+    # Reset index of newly created DataFrame to pull out data into 4 individual columns
+    L6_Unknowns_Processing = L6_Unknowns_Processing.reset_index(inplace=False)
+
+    #Create a subset of all rows that contain only unknowns
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Not sensitive") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Medium") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("No evidence") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Not relevant") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Not assessed") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Low") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("High") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("None") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Very low") == False]
+    L6_Unknowns_Processing=L6_Unknowns_Processing[L6_Unknowns_Processing['Sensitivity'].str.contains("Very high") == False]
+    # Drop unwanted columns from L6 unknown DataFrame
+    L6_Unknowns_Processing = L6_Unknowns_Processing[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']]
+    # create final L6 unknons dataset
+    L6_unknowns = L6_Unknowns_Processing
+
+
+    # Create a new datatfram where we will work out which L5 have unknown values
+    L5_knowns_processing = original_L5_data
     # Drop unwanted columns from 'original_L5_without_L6_DF' DataFrame
-    original_L5_without_L6_DF = original_L5_without_L6_DF[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']]
+    L5_knowns_processing = L5_knowns_processing[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']]
+    #Create a subset of all rows that contain only unknowns
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Not sensitive") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Medium") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("No evidence") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Not relevant") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Not assessed") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Low") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("High") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("None") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Very low") == False]
+    L5_knowns_processing=L5_knowns_processing[L5_knowns_processing['Sensitivity'].str.contains("Very high") == False]
+    # create final L5 unknons dataset
+    L5_knowns_unknowns = L5_knowns_processing
+    # Pull out all the L5 which arent in the unknown dataset - all known L5
+    # Assign the unknown L5s and all the L5 data to new object oriented variable using outer merge between data frames
+    original_L5_data_cleaned = original_L5_data[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']]
+    L5_known_and_unknown = pd.merge(original_L5_data_cleaned, L5_knowns_unknowns, how='outer', on=['Level_5', 'Pressure','SubregionName','Sensitivity'],indicator=True)
+    # Create object for L5 where there are no unknowns
+    L5_known = pd.DataFrame(L5_known_and_unknown[L5_known_and_unknown['_merge'] == 'left_only'])
+    # Drop unwanted columns from L5 known DataFrame
+    L5_known = L5_known[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']]
+
+    # Work out which L6 unknowns are L5 knowns
+    # Assign the unknown L5s and all the L5 data to new object oriented variable using outer merge between data frames
+    L6_Unknown_L5_known_processing = pd.merge(L6_unknowns, L5_known, how='outer', on=['Level_5', 'Pressure','SubregionName'],indicator=True)
+    # Pull out the data which are known for L5 and unknown for L6
+    L6_Unknown_L5_known = pd.DataFrame(L6_Unknown_L5_known_processing[L6_Unknown_L5_known_processing['_merge'] == 'both'])
+    # Drop unwanted columns
+    L6_Unknown_L5_known = L6_Unknown_L5_known[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity_y']]
+    # rename the columns
+    L6_Unknown_L5_known.columns = ['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']
+
+    # remove the columns from L6 aggregated to L5 dataset where they are unknown and L5 is known
+    # Merge L6_Unknown_L5_known with the aggregated_L6_to_L5 table
+    aggregated_L6_to_L5_processing = pd.merge(aggregated_L6_to_L5, L6_Unknown_L5_known, how='outer', on=['Level_5', 'Pressure','SubregionName'],indicator=True)
+    # drop unknown rows fro L6 to L5 aggregated data
+    aggregated_L6_to_L5 = pd.DataFrame(aggregated_L6_to_L5_processing[aggregated_L6_to_L5_processing['_merge'] == 'left_only'])
+    aggregated_L6_to_L5 = aggregated_L6_to_L5[['Level_5', 'Pressure', 'SubregionName', 'Sensitivity_x']]
+
+    # Reset columns within aggregated_L6_to_L5 DF
+    aggregated_L6_to_L5.columns = ['Level_5', 'Pressure', 'SubregionName', 'Sensitivity']
+
+    # merge the information which is known in L5 and unknown in L6 into the original L5 without L6 data
+    original_L5_without_L6_DF = original_L5_without_L6_DF.append(L6_Unknown_L5_known)
+    # End of OG additions 09/22
 
     # APPEND TOGETHER aggregated_L6_to_L5 + original_L5_without_L6_DF
     aggregated_L6_to_L5 = aggregated_L6_to_L5.append(original_L5_without_L6_DF)
@@ -934,7 +1027,7 @@ def main(marESA_file, bioregions_ext):
     # L5_all = L5_all[L5_all['Level_4'] != 'A5.71']
     # Remove child biotopes A5.711 + A5.712 from aggregation data due to prioritisation of Level 4 assessments.
     L5_all = L5_all[L5_all['Level_5'] != 'A5.711']
-    # L5_all = L5_all[L5_all['Level_5'] != 'A5.712']
+   # L5_all = L5_all[L5_all['Level_5'] != 'A5.712']
     L5_all = L5_all[L5_all['Level_5'] != 'A5.713']
     L5_all = L5_all[L5_all['Level_5'] != 'A5.714']
     L5_all = L5_all[L5_all['Level_5'] != 'A5.715']
@@ -972,6 +1065,7 @@ def main(marESA_file, bioregions_ext):
     # Reset columns within L4_agg DataFrame
     L4_agg.columns = ['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']
 
+
     # Add new step to remove the A5.71 biotope from the L4_agg to ensure this is added back in as a new L4 biotope
     # which has not been aggregated
     L4_agg = L4_agg[L4_agg['Level_4'] != 'A5.71']
@@ -980,21 +1074,119 @@ def main(marESA_file, bioregions_ext):
     # ADDING IN L4 DATA WHICH IS NOT SAMPLED FROM THE L6-L5 Aggregation
     ###########################
 
-    # Subset EUNIS L4 data from the bioreg_maresa_merge - maresa / bioregions full join
+    # Extract all original level 5 data and assign to object oriented variable
     L4_maresa_insert = pd.DataFrame(bioreg_maresa_merge.loc[bioreg_maresa_merge['EUNIS_Level'].isin(['4'])])
 
-    # Refine L4_maresa_insert to only include the desired columns to facilitate an append into the L4_agg DF
-    L4_maresa_insert = L4_maresa_insert[['EUNIS_Code', 'Pressure', 'SubregionName', 'Sensitivity']]
+     # OG Potential Fix
 
-    # Rename the columns within the L4_bio_insert DF to match those within the L4_agg DF
-    L4_maresa_insert.columns = ['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']
+     # Assign data differences to new object oriented variable using outer merge between data frames
+    assessed_L4L5_merge = pd.merge(original_L5_data, L4_maresa_insert, how='outer', on=['Level_4', 'Pressure','SubregionName'],indicator=True)
 
-    # Subset the L4_maresa_insert to only include the Level 4 data which was not aggregated from 6 to 5 to 4
-    aggregated_to_L4 = list(L4_agg['Level_4'].unique())
+     # Create object for each unis level/subregion in L4 where there is no L5 - required for new edits added 27/02/2020
+    assessed_L4_without_L5 = pd.DataFrame(assessed_L4L5_merge[assessed_L4L5_merge['Sensitivity_x'].isna()])
+    assessed_L4_without_L5 = assessed_L4_without_L5[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity_y']]
+    assessed_L4_without_L5.columns=['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']
 
-    # Subset by the L4_maresa_insert data which does not also appear within the L4 values created from 6 to 5
-    # aggregations (L4_agg)
-    L4_maresa_insert_without_aggregation = L4_maresa_insert.loc[~L4_maresa_insert['Level_4'].isin(aggregated_to_L4)]
+    # OG 15/03/2023 fix so A5.71 is aggregating from level 4 even though A5.712 is in at level 5 - insert A5.71 back in here
+    L4_maresa_insert_A5_71=L4_maresa_insert[L4_maresa_insert['EUNIS_Code']=='A5.71']
+    L4_maresa_insert_A5_71 = L4_maresa_insert_A5_71[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']]
+
+    assessed_L4_without_L5 = assessed_L4_without_L5.append(L4_maresa_insert_A5_71)
+    # end of og fix a5.71
+
+     # Subset by the L4_maresa_insert data which does not also appear within the L4 values created from 6 to 5
+     # aggregations (L4_agg)
+    L4_maresa_insert_without_aggregation = pd.merge(L4_maresa_insert, assessed_L4_without_L5, how='outer', on=['Level_4', 'Pressure','SubregionName'],indicator=True)
+    L4_maresa_insert_without_aggregation = pd.DataFrame(L4_maresa_insert_without_aggregation[L4_maresa_insert_without_aggregation['_merge'] == 'both'])
+
+     # Drop unwanted columns from 'original_L5_without_L6_DF' DataFrame
+    L4_maresa_insert_without_aggregation = L4_maresa_insert_without_aggregation[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity_x']]
+    L4_maresa_insert_without_aggregation.columns=['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']
+     # End of OG Potential Fix
+
+
+    # OG Changes 09/22 to allow for climate change pressures (if L5 unknown but L4 known then use L4 at L4)
+    # create a new dataframe from which we will work out which L6 have all unknown values
+    L5_Unknowns_Processing = L5_all
+
+    L5_Unknowns_Processing = L5_Unknowns_Processing.groupby(['Level_4', 'Pressure', 'SubregionName']
+                                                            )['Sensitivity'].apply(lambda x: ', '.join(x))
+
+    # Convert the Pandas Series Object into a DataFrame to be manipulated later in the script
+    L5_Unknowns_Processing = pd.DataFrame(L5_Unknowns_Processing)
+
+    # Reset index of newly created DataFrame to pull out data into 4 individual columns
+    L5_Unknowns_Processing = L5_Unknowns_Processing.reset_index(inplace=False)
+
+    #Create a subset of all rows that contain only unknowns
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Not sensitive") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Medium") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("No evidence") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Not relevant") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Not assessed") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Low") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("High") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("None") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Very low") == False]
+    L5_Unknowns_Processing=L5_Unknowns_Processing[L5_Unknowns_Processing['Sensitivity'].str.contains("Very high") == False]
+    # Drop unwanted columns from L5 unknown DataFrame
+    L5_Unknowns_Processing = L5_Unknowns_Processing[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']]
+    # create final L5 unknons dataset
+    L5_unknowns = L5_Unknowns_Processing
+
+    # Extract all original level 4 data and assign to object oriented variable
+    original_L4_data = pd.DataFrame(bioreg_maresa_merge.loc[bioreg_maresa_merge['EUNIS_Level'].isin(['4'])])
+    # Create a new datatfram where we will work out which L4 have known values
+    L4_knowns_processing = original_L4_data
+    # Drop unwanted columns
+    L4_knowns_processing = L4_knowns_processing[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']]
+    #Create a subset of all rows that contain only unknowns
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Not sensitive") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Medium") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("No evidence") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Not relevant") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Not assessed") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Low") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("High") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("None") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Very low") == False]
+    L4_knowns_processing=L4_knowns_processing[L4_knowns_processing['Sensitivity'].str.contains("Very high") == False]
+    # create final L4 unknons dataset
+    L4_known_unknowns = L4_knowns_processing
+    # Pull out all the L4 which arent in the unknown dataset - all known L4
+    # Assign the unknown L4s and all the L4 data to new object oriented variable using outer merge between data frames
+    original_L4_data_cleaned = L4_maresa_insert
+    L4_known_and_unknown = pd.merge(original_L4_data_cleaned, L4_known_unknowns, how='outer', on=['Level_4', 'Pressure','SubregionName','Sensitivity'],indicator=True)
+    # Create object for L4 where there are no unknowns
+    L4_known = pd.DataFrame(L4_known_and_unknown[L4_known_and_unknown['_merge'] == 'left_only'])
+    # Drop unwanted columns from L4 known DataFrame
+    L4_known = L4_known[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']]
+
+    # Work out which L5 unknowns are L4 knowns
+    # Assign the unknown L5s and all the L5 data to new object oriented variable using outer merge between data frames
+    L5_Unknown_L4_known_processing = pd.merge(L5_unknowns, L4_known, how='outer', on=['Level_4', 'Pressure','SubregionName'],indicator=True)
+    # Pull out the data which are known for L5 and unknown for L6
+    L5_Unknown_L4_known = pd.DataFrame(L5_Unknown_L4_known_processing[L5_Unknown_L4_known_processing['_merge'] == 'both'])
+    # Drop unwanted columns
+    L5_Unknown_L4_known = L5_Unknown_L4_known[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity_y']]
+    # rename the columns
+    L5_Unknown_L4_known.columns = ['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']
+
+    # remove the columns from L5 aggregated to L4 dataset where they are unknown and L4 is known
+    # Merge L5_Unknown_L4_known with the L4_agg table
+    L4_agg_processing = pd.merge(L4_agg, L5_Unknown_L4_known, how='outer', on=['Level_4', 'Pressure','SubregionName'],indicator=True)
+    # drop unknown rows fro L6 to L5 aggregated data
+    L4_agg = pd.DataFrame(L4_agg_processing[L4_agg_processing['_merge'] == 'left_only'])
+    L4_agg = L4_agg[['Level_4', 'Pressure', 'SubregionName', 'Sensitivity_x']]
+
+    # Reset columns within aggregated_L6_to_L5 DF
+    L4_agg.columns = ['Level_4', 'Pressure', 'SubregionName', 'Sensitivity']
+
+    # merge the information which is known in L5 and unknown in L6 into the original L5 without L6 data
+    L4_maresa_insert_without_aggregation = L4_maresa_insert_without_aggregation.append(L5_Unknown_L4_known)
+    # End of OG additions 09/22
+
+
 
     # Append the data back into the L4_agg DF
     L4_agg = L4_agg.append(L4_maresa_insert_without_aggregation)
@@ -1306,7 +1498,7 @@ def main(marESA_file, bioregions_ext):
     # Export MasterFrame in CSV format  - Offshore Only
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "OffshoreSensAgg_" + (time.strftime("%Y%m%d") + "_" + str(bioreg_version) + '_' + str(maresa_version) +
                                      ".csv")
@@ -1325,5 +1517,6 @@ def main(marESA_file, bioregions_ext):
 
 
 if __name__ == "__main__":
+    os.chdir('C://Users//Ollie.Grint//Documents')
+    main('MarESA-Data-Extract-habitatspressures_2023-02-07.csv', 'BioregionsExtract_20220310.xlsx','Offshore rerun/')
 
-    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'BioregionsExtract_20220310.xlsx')

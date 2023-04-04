@@ -29,7 +29,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, WelshFOCI):
+def main(marESA_file, WelshFOCI,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ Wales inshore FOCI script started...')
@@ -90,7 +90,7 @@ def main(marESA_file, WelshFOCI):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -114,7 +114,8 @@ def main(marESA_file, WelshFOCI):
     MarESA['JNCC_Code'] = MarESA['JNCC_Code'].str.strip()
 
     # Merge MarESA sensitivity assessments with all data within the foci DF on JNCC code
-    maresa_foci_merge = pd.merge(foci, MarESA, left_on='JNCC code', right_on='JNCC_Code', how='outer', indicator=True)
+    maresa_foci_merge = pd.merge(foci, MarESA,  left_on='JNCC code', right_on='JNCC_Code',
+                                 how='outer', indicator=True)
 
     # Create a subset of the maresa_foci_merge which only contains the foci without MarESA assessments
     foci_only = maresa_foci_merge.loc[maresa_foci_merge['_merge'].isin(['left_only'])]
@@ -547,9 +548,9 @@ def main(marESA_file, WelshFOCI):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
-    filename = "MCZ_Wales_In_FOCI_SensAgg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
+    filename = "MCZ_Wales_In_FOCI_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
     foci_agg.to_csv(outpath + filename, sep=',')
 
@@ -561,7 +562,7 @@ def main(marESA_file, WelshFOCI):
           + '\n' + 'This has been saved as a time-stamped output at the following filepath: ' + str(outpath) + '\n\n')
 
 if __name__ == "__main__":
-
-    main('habitatspressures_20220310.csv', 'Welsh_Inshore_FOCI_2022-03-16.csv')
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2023-02-07.csv', 'Welsh_Inshore_FOCI_2022-03-16.csv','Welsh Inshore FOCI rerun/')
 
 

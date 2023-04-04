@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, EnglishOffshore):
+def main(marESA_file, EnglishOffshore,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ offshore FOCI sensitivity script started...')
@@ -96,7 +96,7 @@ def main(marESA_file, EnglishOffshore):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -549,7 +549,7 @@ def main(marESA_file, EnglishOffshore):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "MCZ_Off_FOCI_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
@@ -564,5 +564,14 @@ def main(marESA_file, EnglishOffshore):
 
 
 if __name__ == "__main__":
-
-    main('habitatspressures_20220310.csv', 'English_Offshore_FOCI&BSH_2022-03-16.csv')
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2022-04-20.csv', 'English_Offshore_FOCI&BSH_2022-03-16.csv')
+    
+    
+    EnglishOffshore = 'English_Offshore_FOCI&BSH_2022-03-16.csv'
+    WelshBSH = 'Welsh_Inshore_BSH_2022-03-16.csv'
+    WelshFOCI = 'Welsh_Inshore_FOCI_2022-03-16.csv'
+    EngWel_Annex1 = 'English_Welsh_Offshore_AnnexI_2022-03-16.csv'
+    Scot_Annex1 = 'Scottish_Offshore_AnnexI_2022-05-06.csv'
+    Scot_PMF = 'Scottish_Offshore_PMF_2022-04-29.csv'
+    marESA_file = 'MarESA-Data-Extract-habitatspressures_2022-04-20.csv'

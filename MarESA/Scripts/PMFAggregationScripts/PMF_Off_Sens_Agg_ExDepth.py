@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, Scot_PMF):
+def main(marESA_file, Scot_PMF,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('Starting the PMF sensitivity script...')
@@ -89,7 +89,7 @@ def main(marESA_file, Scot_PMF):
         df_cut.drop_duplicates(inplace=True)
         return(df_cut)
     
-    MarESA = remove_key_rows(MarESA)
+    #MarESA = remove_key_rows(MarESA)
 
     # Create variable with the MarESA Extract version date to be used
     # in the MarESA Aggregation output file name
@@ -114,7 +114,8 @@ def main(marESA_file, Scot_PMF):
     MarESA['JNCC_Code'] = MarESA['JNCC_Code'].str.strip()
 
     # Merge MarESA sensitivity assessments with all data within the pmf DF on JNCC code
-    maresa_pmf_merge = pd.merge(pmf, MarESA, left_on='JNCC code', right_on='JNCC_Code', how='outer', indicator=True)
+    maresa_pmf_merge = pd.merge(pmf, MarESA, left_on='JNCC code', right_on='JNCC_Code',
+                                how='outer', indicator=True)
 
     # Create a subset of the maresa_pmf_merge which only contains the pmf without MarESA assessments
     pmf_only = maresa_pmf_merge.loc[maresa_pmf_merge['_merge'].isin(['left_only'])]
@@ -184,28 +185,32 @@ def main(marESA_file, Scot_PMF):
         return res
 
     # Perform cross join to blanket all pressures with unknown values to all EUNIS codes within the correlation_snippet
-    pmf_unknown_template_cjoin = df_crossjoin(pmf_only, Template_DF)
+    if len(pmf_only) >=1:
 
-    # Rename columns to match MarESA data
-    pmf_unknown_template_cjoin.rename(
-        columns={
-            'Pressure_y': 'Pressure', 'Resistance_y': 'Resistance',
-            'Resilience_y': 'Resilience', 'Sensitivity_y': 'Sensitivity', 'JNCC_Code_y': 'JNCC_Code'}, inplace=True)
+        pmf_unknown_template_cjoin = df_crossjoin(pmf_only, Template_DF)
 
-    # Restructure the crossjoined DF to only retain columns of interest
-    pmf_unknown = pmf_unknown_template_cjoin[
-        ['PMF', 'SubregionName', 'EUNIS name', 'JNCC code',
-         'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
-    ]
+        # Rename columns to match MarESA data
+        pmf_unknown_template_cjoin.rename(
+            columns={
+                'Pressure_y': 'Pressure', 'Resistance_y': 'Resistance',
+                'Resilience_y': 'Resilience', 'Sensitivity_y': 'Sensitivity', 'JNCC_Code_y': 'JNCC_Code'}, inplace=True)
 
-    # Refine the pmf_maresa dF to match the columns of the newly created pmf_unknown template
-    pmf_maresa = pmf_maresa[
-        ['PMF', 'SubregionName', 'EUNIS name', 'JNCC code',
-         'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
-    ]
+        # Restructure the crossjoined DF to only retain columns of interest
+        pmf_unknown = pmf_unknown_template_cjoin[
+            ['PMF', 'SubregionName', 'EUNIS name', 'JNCC code',
+             'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ]
 
-    # Append the pmf_unknown into the refined pmf_maresa DF
-    pmf_maresa_unknowns = pmf_maresa.append(pmf_unknown, ignore_index=True)
+        # Refine the pmf_maresa dF to match the columns of the newly created pmf_unknown template
+        pmf_maresa = pmf_maresa[
+            ['PMF', 'SubregionName', 'EUNIS name', 'JNCC code',
+             'JNCC name', 'Pressure', 'Resistance', 'Resilience', 'Sensitivity']
+        ]
+
+        # Append the pmf_unknown into the refined pmf_maresa DF
+        pmf_maresa_unknowns = pmf_maresa.append(pmf_unknown, ignore_index=True)
+    else:
+        pmf_maresa_unknowns=pmf_maresa
 
     #############################################################
 
@@ -545,7 +550,7 @@ def main(marESA_file, Scot_PMF):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "PMF_Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method
@@ -561,3 +566,6 @@ def main(marESA_file, Scot_PMF):
            '\n' + 'This has been saved as a time-stamped output at ' +
            'the following filepath: ' + str(outpath) + '\n\n')
 
+if __name__ == "__main__":
+    os.chdir('C:/Users/Ollie.Grint/Documents')
+    main('MarESA-Data-Extract-habitatspressures_2023-02-07.csv', 'Scottish_Offshore_PMF_2022-04-29.csv','PMF Off Sens rerun/')
