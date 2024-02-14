@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, Scot_Annex1):
+def main(marESA_file, Scot_Annex1,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('starting the anxI Scotland inoff sensitivity script...')
@@ -548,7 +548,7 @@ def main(marESA_file, Scot_Annex1):
     # Export data export
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "AnxI_Scot_In&Off_Sens_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method

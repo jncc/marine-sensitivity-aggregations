@@ -14,11 +14,11 @@ from collections import Counter
 ########################################################################################################################################################
 
 # Set the file the outputs were written into
-path = 'C:/Users/Ollie.Grint/Documents/MarESA/Output/Output_20230222'
+path = 'C:/Users/Ollie.Grint/Documents/marine-sensitivity-aggregations/MarESA/Output/20231107'
 
-Sens_file="OffshoreSensAgg_20230222_Bioreg20220310_marESA20230207.csv"
-Res_file="OffshoreResAgg_20230222_Bioreg20220310_marESA20230207.csv"
-Resil_file="OffshoreResilAgg_20230222_Bioreg20220310_marESA20230207.csv"
+Sens_file="OffshoreSensAgg_20231107_Bioreg20220310_marESA07.csv"
+Res_file="OffshoreResAgg_20231107_Bioreg20220310_marESA07.csv"
+Resil_file="OffshoreResilAgg_20231107_Bioreg20220310_marESA07.csv"
 
 climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming (Middle)',
                    'Ocean Acidification (High)', 'Ocean Acidification (Middle)', 'Sea level rise (Extreme)',
@@ -28,6 +28,7 @@ climate = ['Global warming (Extreme)', 'Global warming (High)', 'Global warming 
 ########################################################################################################################################################
 
 os.chdir(path)
+
 Path("Duplicates_check").mkdir(parents=True, exist_ok=True)
 Path("Aggregation_check").mkdir(parents=True, exist_ok=True)
 
@@ -87,7 +88,9 @@ def check_aggregations(Level_df,Level_no_aggregated_from):
         if len(entry_prep) ==0:
             pass
         else:
-
+            print(entry_prep['Pressure'])
+            print(entry_prep[Level_aggregated_to_AssesedCount][0])
+            print(type(entry_prep[Level_aggregated_to_AssesedCount][0]))
             assesed=entry_prep[Level_aggregated_to_AssesedCount][0]
             unassessed=entry_prep[Level_aggregated_to_UnassesedCount][0]
             
@@ -123,7 +126,7 @@ def check_aggregations(Level_df,Level_no_aggregated_from):
 
                 # Check the assessed aggregation
                 if not all(str(x) in ['Not Applicable','nan'] for x in level_above_entries_assesed ):
-    
+                    print(assesed)
                     # Create a list of all the assesed scores
                     assesed_list=assesed.split(",")
                     assesed_counts=[]

@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Define the code as a function to be executed as necessary
-def main(marESA_file, EnglishOffshore):
+def main(marESA_file, EnglishOffshore,output_file):
     # Test the run time of the function
     start = time.process_time()
     print('MCZ offshore FOCI resilence script has started...')
@@ -549,7 +549,7 @@ def main(marESA_file, EnglishOffshore):
     # Export DF for use
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "MCZ_Off_FOCI_Resil_Agg_" + (time.strftime("%Y%m%d") + '_' + str(maresa_version) +".csv")
     # Run the output DF.to_csv method

@@ -25,9 +25,17 @@
 import os
 import sys
 import time
+from pathlib import Path
 
 # Test the run time of the function
 start = time.process_time()
+
+# Set the overall directory
+os.chdir('C://Users//Ollie.Grint//Documents//marine-sensitivity-aggregations')
+
+# set the output file
+output_file= '20240206v2/'
+Path("./MarESA/Output/"+output_file).mkdir(parents=True, exist_ok=True)
 
 ########################################################################
 #
@@ -38,7 +46,7 @@ start = time.process_time()
 # CHECK  FOR MOST UP-TO-DATE MarESA EXTRACT VERSION:
 # The top copy can be found at the following file path:
 # \\jncc-corpfile\gis\Reference\Marine\Sensitivity
-marESA_file = 'MarESA-Data-Extract-habitatspressures_2022-04-20.csv'
+marESA_file = 'MarESA-Data-Extract-habitatspressures_2023_11_07.csv'
 # Excel tab names change dependent on the data received from the MBA,
 # therefore, the input MarESA Extract Excel
 # marESA_tab = 'MarESA-Data-extract_2021-07-02'
@@ -90,7 +98,7 @@ print('\n\n')
 # Title: JNCC MarESA Sensitivity Aggregation (EUNIS)
 
 import SensitivityAggregationOffshore as SAO
-SAO.main(marESA_file, bioregions_ext)
+SAO.main(marESA_file, bioregions_ext,output_file)
 
 # ########################################################################
 # # Title: JNCC MarESA Resistance Aggregation (EUNIS)
@@ -98,7 +106,7 @@ SAO.main(marESA_file, bioregions_ext)
 import ResistanceAggregationOffshore as RtAO
 # running the resistance script
 # getting the resistance output file name to use later in the bs3 script
-offshore_res_file = RtAO.main(marESA_file, bioregions_ext)
+offshore_res_file = RtAO.main(marESA_file, bioregions_ext,output_file)
 
 # ########################################################################
 # # Title: JNCC MarESA Resilience Aggregation (EUNIS)
@@ -106,7 +114,7 @@ offshore_res_file = RtAO.main(marESA_file, bioregions_ext)
 import ResilienceAggregationOffshore as RcAO
 # running the script offshore resilience script
 # getting the resilience output file name to use later in the bs3 script
-offshore_resil_file = RcAO.main(marESA_file, bioregions_ext)
+offshore_resil_file = RcAO.main(marESA_file, bioregions_ext,output_file)
 
 ########################################################################
 #
@@ -118,7 +126,7 @@ offshore_resil_file = RcAO.main(marESA_file, bioregions_ext)
 # Title: Deep Seabed Sensitivity Aggregation
 
 import DeepSeabed_Sens_Agg as DSA
-DSA.main(marESA_file, EnglishOffshore)
+DSA.main(marESA_file, EnglishOffshore,output_file)
 
 # ########################################################################
 # # Title: Deep Seabed Resilience Aggregation
@@ -131,7 +139,7 @@ DSA.main(marESA_file, EnglishOffshore)
 # # Title: MCZ Wales Inshore Broadscale Habitat Sensitivity Aggregation
 
 import MCZ_Wales_In_BSH_Sens_Agg as MWB
-MWB.main(marESA_file, WelshBSH)
+MWB.main(marESA_file, WelshBSH,output_file)
 
 ########################################################################
 #
@@ -144,7 +152,7 @@ MWB.main(marESA_file, WelshBSH)
 # Title: OSPAR BH3 Sensitivity Calculation
 
 # import BH3_SensitivityCalculation as BH3SC
-# BH3SC.main(offshore_res_file, offshore_resil_file)
+# BH3SC.main(offshore_res_file, offshore_resil_file,output_file)
 
 ########################################################################
 #
@@ -157,7 +165,7 @@ MWB.main(marESA_file, WelshBSH)
 # MCZ Offshore FeatureOfConservationImportance (FOCI) Sensitivity Aggregation
 
 import MCZ_Off_FOCI_Sens_Agg as MOFS
-MOFS.main(marESA_file, EnglishOffshore)
+MOFS.main(marESA_file, EnglishOffshore,output_file)
 
 # #############################################################
 # # MCZ Offshore Feature of Conservation Importance (FOCI) Resilience Aggregation
@@ -170,7 +178,7 @@ MOFS.main(marESA_file, EnglishOffshore)
 # # MCZ Wales Inshore Feature of Conservation Importance Sensitivity Aggregation
 
 import MCZ_Wales_In_FOCI_Sens_Agg as MWIFC
-MWIFC.main(marESA_file, WelshFOCI)
+MWIFC.main(marESA_file, WelshFOCI,output_file)
 
 ########################################################################
 #
@@ -182,13 +190,13 @@ MWIFC.main(marESA_file, WelshFOCI)
 # Title: Annex I England and Wales Offshore Sensitivity Aggregation
 
 import AnxI_EngWales_Off_Sens_Agg as AEWOS
-AEWOS.main(marESA_file, EngWel_Annex1)
+AEWOS.main(marESA_file, EngWel_Annex1,output_file)
 
 # #############################################################
 # # Title: Annex I England and Wales Offshore Resilience Aggregation
 
 # import AnxI_EngWales_Off_Resil_Agg as AEWOR
-# AEWOR.main(marESA_file, EngWel_Annex1)
+# AEWOR.main(marESA_file, EngWel_Annex1,output_file)
 #['Subregion', 'Annex I sub feature type', 'Biotope name']
 
 # #############################################################
@@ -196,16 +204,15 @@ AEWOS.main(marESA_file, EngWel_Annex1)
 
 # SHOUD NOT WORK - old one
 # import AnxI_Scot_InOff_Sens_Agg as ASIOS
-# ASIOS.main(marESA_file, Scot_Annex1)
+# ASIOS.main(marESA_file, Scot_Annex1,output_file)
 # df1.loc[:, '_tmpkey'] = 1
 
 #############################################################
 # Title: Annex I  Scotland Offshore Sensitivity Aggregation
 
 # SHOUDL WORK
-# import AnxI_Scot_Off_Sens_Agg as ASOS
-# ASOS.main(marESA_file, Scot_Annex1)
-# df1.loc[:, '_tmpkey'] = 1
+import AnxI_Scot_Off_Sens_Agg as ASOS
+ASOS.main(marESA_file, Scot_Annex1,output_file)
 
 ########################################################################
 #
@@ -217,7 +224,7 @@ AEWOS.main(marESA_file, EngWel_Annex1)
 # Title: PMF Offshore Sensitivity Aggregation
 
 import PMF_Off_Sens_Agg_ExDepth as POSAED
-POSAED.main(marESA_file, Scot_PMF)
+POSAED.main(marESA_file, Scot_PMF,output_file)
 
 ########################################################################
 #
@@ -228,7 +235,7 @@ POSAED.main(marESA_file, Scot_PMF)
 # Execute the Aggregation Audit Log
 # Run alongside a QA script and a file send script
 import AggregationAuditLog as audit
-audit.main(audit = True, send = True)
+#audit.main(audit = True, send = True)
 
 # Stop the timer post computation and print the elapsed time
 elapsed = (time.process_time() - start)

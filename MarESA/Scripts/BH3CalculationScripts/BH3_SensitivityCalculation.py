@@ -26,7 +26,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # Create function to execute main script
-def main(resistance_file, resilience_file):
+def main(resistance_file, resilience_file,output_file):
 
     start = time.process_time()
     print('BH3 sensitivity script started...')
@@ -1343,7 +1343,7 @@ def main(resistance_file, resilience_file):
     # Export the output res_resil_mergeOFF DF with all computed BH3 values
 
     # Define folder file path to be saved into
-    outpath = "./MarESA/Output/"
+    outpath = "./MarESA/Output/"+output_file
     # Define file name to save, categorised by date
     filename = "BH3_OffSens_" + (time.strftime("%Y%m%d") + '_' + str(res_version) + '_'
                                                          + str(resil_version) + ".csv")
