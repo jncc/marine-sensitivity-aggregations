@@ -124,7 +124,7 @@ def main(marESA_file, bioregions_ext,output_file):
     CorrelationsBreakdown = CorrelationsBreakdown[CorrelationsBreakdown['JNCC 15.03 code'].str.contains('/')]
 
     # remove those from CorrelationsBreakdown
-    CorrelationTable.drop(index=list(CorrelationsBreakdown.index.values))
+    CorrelationTable = CorrelationTable.loc[~CorrelationTable['JNCC 15.03 code'].str.contains('/', na=False)]
 
     CorrelationsBreakdown.reset_index(inplace=True)
 
@@ -148,8 +148,10 @@ def main(marESA_file, bioregions_ext,output_file):
                                'JNCC 15.03 name':[JNCC_name_iteration],'JNCC 15.03 level':[JNCCLEVEL],'SNH Annex I sub-type':[SUBTYPE]})
             CorrelationsReconstructed=CorrelationsReconstructed.append(df_temp)
 
-    CorrelationTable.append(CorrelationsReconstructed)
+
+    CorrelationTable = CorrelationTable.append(CorrelationsReconstructed)
     CorrelationTable.reset_index(inplace=True)
+
 
     #############################################################
 
@@ -732,33 +734,20 @@ def main(marESA_file, bioregions_ext,output_file):
                 return 'High'
 
     # Function Title: column5
-    def column5(df, column):
+    def column_aggregate(df, column):
         """Sample Level_5 column and return string variables sliced within the range [0:6]"""
         value = df[column]
-        sample = value[0:6]
+        length = value.count('.')
+        if length == 4:
+            sample = value.split('.')[0]+'.'+value.split('.')[1]+'.'+value.split('.')[2]+'.'+value.split('.')[3]
+        elif length == 3:
+            sample = value.split('.')[0]+'.'+value.split('.')[1]+'.'+value.split('.')[2]
+        elif length == 2:
+            sample = value.split('.')[0]+'.'+value.split('.')[1]
+        elif length == 1:
+            sample = value.split('.')[0]
         return sample
-
-    # Function Title: column4
-    def column4(df, column):
-        """Sample Level_5 column and return string variables sliced within the range [0:5]"""
-        value = df[column]
-        sample = value[0:5]
-        return sample
-
-    # Function Title: column3
-    def column3(df, column):
-        """User defined function to sample Level_4 column and return string variables sliced within the range [0:4]"""
-        value = df[column]
-        sample = value[0:4]
-        return sample
-
-    # Function Title: column2
-    def column2(df, column):
-        """User defined function to sample Level_4 column and return string variables sliced within the range [0:4]"""
-        value = df[column]
-        sample = value[0:2]
-        return sample
-
+    
     ####################################################################################################################
 
     # Data formatting
@@ -770,10 +759,6 @@ def main(marESA_file, bioregions_ext,output_file):
 
     # Merge bioregions and marESA data together
     bioreg_maresa_merge = pd.merge(bioregions, maresa, on='EUNIS_Code', how='left')
-
-    maresa.to_csv('test2.csv')
-
-    sys.exit
 
     # Refine the DF to remove the currently not needed Region 8 (deep dea)
     bioreg_maresa_merge = bioreg_maresa_merge[bioreg_maresa_merge['SubregionName'] != 'Region 8 (deep-sea)']
@@ -796,9 +781,26 @@ def main(marESA_file, bioregions_ext,output_file):
     # bioreg_maresa_merge DF to the eunis_lvl() function.
     bioreg_maresa_merge['MHC_Level'] = bioreg_maresa_merge.apply(lambda row: MHC_lvl(row), axis=1)
 
+    # Make codes with M. in start level 2 at M.X
+    # Subset M codes
+    M_codes=bioreg_maresa_merge[bioreg_maresa_merge['Level_2'] == 'M']
+    # remove M codes from other dataset
+    bioreg_maresa_merge= bioreg_maresa_merge[bioreg_maresa_merge['Level_2'] != 'M']
+    # Restructure M codes
+    M_codes['Level_2']=M_codes['Level_3']
+    M_codes['Level_3']=M_codes['Level_4']
+    M_codes['Level_4']=M_codes['Level_5']
+    M_codes['Level_5']=M_codes['Level_6']
+    M_codes['Level_6']='None'
+    M_codes['MHC_Level']=M_codes['MHC_Level'].astype(int)-1
+    M_codes['MHC_Level']=M_codes['MHC_Level'].astype(str)
 
 
-    ####################################################################################################################
+    # merge back together
+    bioreg_maresa_merge = bioreg_maresa_merge.append(M_codes)
+    bioreg_maresa_merge
+
+####################################################################################################################
 
     # Level 6 data only
 
@@ -859,7 +861,7 @@ def main(marESA_file, bioregions_ext,output_file):
     L6_processed['L6_UnassessedCount'] = L6_processed.apply(lambda df: combine_unassessedcounts(df), axis=1)
 
     # Apply column5() function to L6_processed DataFrame to create new Level_5 column
-    L6_processed['Level_5'] = L6_processed.apply(lambda df: pd.Series(column5(df, 'Level_6')), axis=1)
+    L6_processed['Level_5'] = L6_processed.apply(lambda df: pd.Series(column_aggregate(df, 'Level_6')), axis=1)
 
 
 
@@ -1060,7 +1062,7 @@ def main(marESA_file, bioregions_ext,output_file):
         aggregated_L6_to_L5.apply(lambda df: combine_unassessedcounts(df), axis=1)
 
     # Apply column4() function to L6_processed DataFrame to create new Level_5 column
-    aggregated_L6_to_L5['Level_4'] = aggregated_L6_to_L5.apply(lambda df: pd.Series(column4(df, 'Level_5')), axis=1)
+    aggregated_L6_to_L5['Level_4'] = aggregated_L6_to_L5.apply(lambda df: pd.Series(column_aggregate(df, 'Level_5')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
     aggregated_L6_to_L5['L5_AggregationConfidenceValue'] = \
@@ -1083,6 +1085,7 @@ def main(marESA_file, bioregions_ext,output_file):
     L5_all = L5_all[L5_all['Level_5'] != 'A5.714']
     L5_all = L5_all[L5_all['Level_5'] != 'A5.715']
     L5_all = L5_all[L5_all['Level_5'] != 'A5.716']
+
 
     ####################################################################################################################
 
@@ -1187,6 +1190,7 @@ def main(marESA_file, bioregions_ext,output_file):
 
     # Extract all original level 4 data and assign to object oriented variable
     original_L4_data = pd.DataFrame(bioreg_maresa_merge.loc[bioreg_maresa_merge['MHC_Level'].isin(['4'])])
+  
     # Create a new datatfram where we will work out which L4 have known values
     L4_knowns_processing = original_L4_data
     # Drop unwanted columns
@@ -1281,7 +1285,7 @@ def main(marESA_file, bioregions_ext,output_file):
     L4_sens['L4_UnassessedCount'] = L4_sens.apply(lambda df: combine_unassessedcounts(df), axis=1)
 
     # Apply column3() function to L4_sens DataFrame to create new Level_3 column
-    L4_sens['Level_3'] = L4_sens.apply(lambda df: pd.Series(column3(df, 'Level_4')), axis=1)
+    L4_sens['Level_3'] = L4_sens.apply(lambda df: pd.Series(column_aggregate(df, 'Level_4')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
     L4_sens['L4_AggregationConfidenceValue'] = L4_sens.apply(lambda df: create_confidence(df), axis=1)
@@ -1364,7 +1368,7 @@ def main(marESA_file, bioregions_ext,output_file):
     L3_sens['L3_UnassessedCount'] = L3_sens.apply(lambda df: combine_unassessedcounts(df), axis=1)
 
     # Apply column2() function to L3_sens DataFrame to create new Level_2 column
-    L3_sens['Level_2'] = L3_sens.apply(lambda df: pd.Series(column2(df, 'Level_3')), axis=1)
+    L3_sens['Level_2'] = L3_sens.apply(lambda df: pd.Series(column_aggregate(df, 'Level_3')), axis=1)
 
     # Use lambda function to apply create_confidence() function to the DataFrame
     L3_sens['L3_AggregationConfidenceValue'] = L3_sens.apply(lambda df: create_confidence(df), axis=1)
@@ -1569,6 +1573,6 @@ def main(marESA_file, bioregions_ext,output_file):
 
 
 if __name__ == "__main__":
-    os.chdir('C://Users//Ollie.Grint//Documents/marine-sensitivity-aggregations')
+    os.chdir('C://Users//Ollie.Grint//Documents/projects/marine-sensitivity-aggregations')
     main('MarESA-Data-Extract-habitatspressures_2023_11_07.csv', 'BioregionsExtract_20220310.xlsx','code switch test/')
 
